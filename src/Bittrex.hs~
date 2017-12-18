@@ -1,0 +1,179 @@
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric     #-}
+module Bittrex
+  ( -- * Public
+    -- * Account
+    -- * Market
+  ) where
+
+import           Control.Lens
+import           Data.Aeson
+import           Data.Time
+import           Data.Aeson.Lens         (key, nth)
+import           Data.ByteString         (ByteString)
+import qualified Data.ByteString         as B
+import           Data.Char
+import           Data.List
+import           Data.Monoid
+import           Data.Proxy
+import           Data.Text               (Text)
+import qualified Data.Text               as T
+import           GHC.Generics
+import           Network.HTTP.Client.TLS
+import           Network.Wreq
+import           Debug.Trace
+
+-- | We provide a simple RESTful API.
+-- All calls are GETs and should be called via https.
+-- We will support n-1 versions of the API.
+-- Our current stable API is v1 and v1.1
+
+-- | https://bittrex.com/api/{version}/{method}?param=value
+
+-- https://bittrex.com/api/v1.1/public/getcurrencies
+
+-- getWith opts "https://api.github.com/search/repositories"
+type Params = [(T.Text,String)]
+
+data APIType
+  = PublicAPI
+  | AccountAPI
+  | MarketAPI
+  deriving (Eq)
+
+instance Show APIType where
+  show PublicAPI  = "public"
+  show AccountAPI = "account"
+  show MarketAPI  = "market"
+
+defOpts :: APIOpts
+defOpts = APIOpts PublicAPI [] "v1.1" mempty
+
+data APIOpts
+  = APIOpts
+  { apiType :: APIType
+  , qParams :: Params
+  , version :: String
+  , path :: String
+  } deriving (Show, Eq)
+
+callAPI :: FromJSON v => APIOpts -> IO (Either ErrorMessage v)
+callAPI APIOpts {..} = do
+  let addParam (k,v) o = o & param k .~ [T.pack $ camelToDash v]
+      opts = foldr addParam defaults qParams
+      url = intercalate "/" [ "https://bittrex.com/api"
+                            , version
+                            , map toLower (show apiType)
+                            , path
+                            ]
+  r <- getWith opts url
+  let isSuccess   = r ^? responseBody . key "success"
+      Just result = r ^? responseBody . key "result"
+      Just msg    = r ^? responseBody . key "message"
+  pure $ if isSuccess == Just (Bool True)
+           then case fromJSON result of
+                  Error s  -> Left (DecodeFailure s result)
+                  Success m -> Right m
+           else case fromJSON msg of
+                  Error s -> Left (OtherError msg)
+                  Success s -> Left s
+     where
+       camelToDash :: String -> String
+       camelToDash [] = []
+       camelToDash ('_':xs) = '-':camelToDash xs
+       camelToDash (x:xs) = toLower x:camelToDash xs
+
+data ErrorMessage
+  = INVALID_MARKET
+  | MARKET_NOT_PROVIDED
+  | APIKEY_NOT_PROVIDED
+  | OtherError Value
+  | DecodeFailure String Value
+  deriving (Show, Eq, Generic)
+
+instance FromJSON ErrorMessage
+
+data MarketName
+  = BTC_ADA
+  deriving (Show)
+
+data Ticker = Ticker
+  { bid :: Double
+  , ask :: Double
+  , last :: Double
+  } deriving (Generic, Show)
+
+instance FromJSON Ticker where
+  parseJSON = withObject "Ticker" $ \o ->
+    Ticker <$> o .: "Bid"
+           <*> o .: "Ask"
+           <*> o .: "Last"
+
+-- | Public - Public information available without an API key
+
+-- /public/getmarkets
+-- https://bittrex.com/api/v1.1/public/getmarkets
+-- Used to get the open and available trading markets at Bittrex along with other meta data.
+getMarkets :: IO (Either ErrorMessage [Market])
+getMarkets = callAPI defOpts { path = "getmarkets" }
+
+data Market
+  = Market
+  { marketCurrency :: Text
+  , baseCurrency :: Text
+  , marketCurrencyLong :: Text
+  , baseCurrencyLong :: Text
+  , minTradeSize :: Double
+  , marketName :: Text
+  , isActive :: Bool
+  , created :: Text
+  } deriving (Show, Eq)
+
+instance FromJSON Market where
+  parseJSON = withObject "Market" $ \o ->
+    Market <$> o .: "MarketCurrency"
+           <*> o .: "BaseCurrency"
+           <*> o .: "MarketCurrencyLong"
+           <*> o .: "BaseCurrencyLong"
+           <*> o .: "MinTradeSize"
+           <*> o .: "MarketName"
+           <*> o .: "IsActive"
+           <*> o .: "Created"
+
+-- /public/getcurrencies
+-- Used to get all supported currencies at Bittrex along with other meta data.
+-- https://bittrex.com/api/v1.1/public/getticker
+getCurrencies :: IO (Either ErrorMessage [Currency])
+getCurrencies = callAPI defOpts { path = "getcurrencies" }
+
+-- /public/getticker
+-- Used to get the current tick values for a market.
+-- https://bittrex.com/api/v1.1/public/getticker
+getTicker :: MarketName -> IO (Either ErrorMessage Ticker)
+getTicker market =
+  callAPI defOpts {
+      qParams = [("market", show market)]
+    , path = "getticker"
+    }
+
+
+-- /public/getmarketsummaries
+-- Used to get the last 24 hour summary of all active exchanges
+-- https://bittrex.com/api/v1.1/public/getmarketsummaries
+
+-- /public/getmarketsummary
+-- Used to get the last 24 hour summary of all active exchanges
+-- https://bittrex.com/api/v1.1/public/getmarketsummary?market=btc-ltc
+-- params::, a string literal for the market (ex: BTC-LTC)
+
+-- /public/getorderbook
+-- Used to get retrieve the orderbook for a given market
+-- Parameters
+  -- market	required	a string literal for the market (ex: BTC-LTC)
+  -- type	required        buy, sell or both to identify the type of orderbook to return.
+
+-- /public/getmarkethistory
+-- Used to retrieve the latest trades that have occured for a specific market.
+--  market required  string literal for the market (ex: BTC-LTC)
+-- https://bittrex.com/api/v1.1/public/getmarkethistory?market=BTC-DOGE
