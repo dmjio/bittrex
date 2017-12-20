@@ -1,7 +1,7 @@
 name:                bittrex
 version:             0.1.0.0
 synopsis:            API bindings to bittrex.com
-description:         API bindings to bittrex.com
+description:         Haskell bindings to the Bittrex exchange
 homepage:            https://github.com/dmjio/bittrex
 license:             BSD3
 license-file:        LICENSE
@@ -17,13 +17,15 @@ library
   exposed-modules:     Bittrex
   hs-source-dirs:      src
   default-language:    Haskell2010
-  build-depends:       aeson
+  build-depends:       SHA
+                     , aeson
                      , base
+                     , base16-bytestring
                      , bytestring
-                     , cryptohash-sha512
                      , http-client-tls
                      , lens
                      , lens-aeson
+                     , split
                      , text
                      , time
                      , wreq

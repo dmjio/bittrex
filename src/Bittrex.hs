@@ -1,22 +1,32 @@
 {-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Bittrex
   ( -- * Public
+    getMarkets
+  , getCurrencies
+  , getTicker
+  , getMarketSummaries
+  , getMarketSummary
+  , getOrderBook
+  , getMarketHistory
     -- * Account
     -- * Market
   ) where
 
 import           Control.Lens
-import           Crypto.Hash.SHA512
 import           Data.Aeson
 import           Data.Aeson.Lens         (key, nth)
 import           Data.ByteString         (ByteString)
 import qualified Data.ByteString         as B
+import qualified Data.ByteString.Base16  as B16
 import qualified Data.ByteString.Char8   as BC
 import qualified Data.ByteString.Lazy    as L
 import           Data.Char
+import           Data.Digest.Pure.SHA
 import           Data.List
+import           Data.List.Split         (splitOn)
 import           Data.Monoid
 import           Data.Proxy
 import           Data.Text               (Text)
@@ -69,28 +79,31 @@ data APIOpts
 
 callAPI :: FromJSON v => APIOpts -> IO (Either ErrorMessage v)
 callAPI APIOpts {..} = do
-  nonce <- getPOSIXTime
+  nonce <- head . splitOn "." . show <$> getPOSIXTime
   let addParam (k,v) o = o & param k .~ [T.pack $ camelToDash v]
       addAuth = apiType `elem` [AccountAPI, MarketAPI]
       opts = addHeader $ foldr addParam defaults (qParams ++ otherParams)
       otherParams = concat
         [ [ ("apikey", BC.unpack apiKey) | addAuth ]
-        , [ ("nonce", show nonce)        | addAuth ]
+        , [ ("nonce", nonce)             | addAuth ]
         ]
-      addHeader o =
+      addHeader o = traceShow (urlForHash, qParams ++ otherParams) $
           if addAuth
-            then o & header "apisign" .~ [ hmac apiSecret urlForHash ]
+            then o & header "apisign" .~ [
+               BC.pack $ showDigest $
+                 hmacSha512 (L.fromStrict apiSecret) (L.fromStrict urlForHash)
+            ]
             else o
       urlForHash = BC.pack $
         url <> mconcat [ "?apikey=" <> BC.unpack apiKey
-                       , "&nonce=" <> show nonce
+                       , "&nonce=" <> nonce
                        ]
       url = intercalate "/" [ "https://bittrex.com/api"
                             , version
-                            , map toLower (show apiType)
+                            , toLower <$> show apiType
                             , path
                             ]
-  r <- getWith opts url
+  r <- traceShow opts $ getWith opts url
   let Just success = r ^? responseBody . key "success"
       Just result  = r ^? responseBody . key "result"
       Just msg     = r ^? responseBody . key "message"
@@ -105,12 +118,15 @@ callAPI APIOpts {..} = do
        camelToDash :: String -> String
        camelToDash [] = []
        camelToDash ('_':xs) = '-':camelToDash xs
-       camelToDash (x:xs) = toLower x:camelToDash xs
+       camelToDash (x:xs) = x:camelToDash xs
 
 data ErrorMessage
   = INVALID_MARKET
   | MARKET_NOT_PROVIDED
   | APIKEY_NOT_PROVIDED
+  | APIKEY_INVALID
+  | INVALID_SIGNATURE
+  | NONCE_NOT_PROVIDED
   | OtherError Value
   | DecodeFailure String Value
   deriving (Show, Eq, Generic)
@@ -119,6 +135,7 @@ instance FromJSON ErrorMessage
 
 data MarketName
   = BTC_ADA
+  | BTC_LTC
   deriving (Show)
 
 data Ticker = Ticker
@@ -206,8 +223,8 @@ getTicker market =
 -- Used to get the last 24 hour summary of all active exchanges
 -- https://bittrex.com/api/v1.1/public/getmarketsummaries
 getMarketSummaries :: IO (Either ErrorMessage Value)
-getMarketSummaries = callAPI defOpts {  path = "getmarketsummaries" }
-
+getMarketSummaries =
+  callAPI defOpts { path = "getmarketsummaries" }
 
 -- /public/getmarketsummary
 -- Used to get the last 24 hour summary of all active exchanges
@@ -304,5 +321,23 @@ instance FromJSON MarketHistory where
 --  = BITCOIN|NXT|BITCOINEX|NXT_MS|CRYPTO_NOTE_PAYMENTID|BITSHAREX|NXT_ASSET|COUNTERPARTY|BITCOIN_STEALTH|RIPPLE|NEM|ETH|OMNI|LUMEN|FACTOM|STEEM|BITCOIN_PERCENTAGE_FEE|LISK|ETH_CONTRACT|WAVES|ANTSHARES|WAVES_ASSET|BYTEBALL|SIA|IOTA|ADA
 
 -- Market Apis
+-- https://bittrex.com/api/v1.1/account/getbalances?apikey=API_KEY
+getbalances :: IO (Either ErrorMessage Value)
+getbalances =
+  callAPI defOpts {
+      path = "getbalances"
+    , apiKey = ""
+    , apiType = AccountAPI
+    , apiSecret = ""
+    }
 
+getOpenOrders :: MarketName -> IO (Either ErrorMessage Value)
+getOpenOrders market =
+  callAPI defOpts {
+      path      = "getopenorders"
+    , apiKey    = ""
+    , apiType   = MarketAPI
+    , apiSecret = ""
+    , qParams   = pure ("market", show market)
+    }
 
