@@ -15,12 +15,15 @@ cabal-version:       >=1.10
 
 library
   exposed-modules:     Bittrex
+                       Bittrex.API
+                       Bittrex.Types
+                       Bittrex.Util
+  other-modules:       Bittrex.Internal
   hs-source-dirs:      src
   default-language:    Haskell2010
   build-depends:       SHA
                      , aeson
                      , base
-                     , base16-bytestring
                      , bytestring
                      , http-client-tls
                      , lens
