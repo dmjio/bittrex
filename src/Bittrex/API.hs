@@ -31,12 +31,14 @@ module Bittrex.API
   , getDepositHistory
   ) where
 
-import Data.Aeson
-import Data.Monoid
+import           Data.Aeson
+import           Data.Monoid
+import           Data.Text        (Text)
+import qualified Data.Text        as T
 
-import Bittrex.Types
-import Bittrex.Util
-import Bittrex.Internal
+import           Bittrex.Types
+import           Bittrex.Util
+import           Bittrex.Internal
 
 -- $intro
 -- Bittrex provides a simple and powerful REST API to allow you to programatically perform nearly all actions you can from our web interface.
@@ -129,7 +131,7 @@ buyLimit
   -> MarketName -- ^ A string literal for the market (ex: BTC-LTC)
   -> Quantity   -- ^ The amount to purchase
   -> Rate       -- ^ The rate at which to place the order.
-  -> IO (Either ErrorMessage Value)
+  -> IO (Either ErrorMessage UUID)
 buyLimit keys market quantity rate =
   callAPI defOpts {
       path      = "buylimit"
@@ -148,7 +150,7 @@ sellLimit
   -> MarketName -- ^ A string literal for the market (ex: BTC-LTC)
   -> Quantity   -- ^ The amount to purchase
   -> Rate       -- ^ The rate at which to place the order
-  -> IO (Either ErrorMessage Value)
+  -> IO (Either ErrorMessage UUID)
 sellLimit keys market quantity rate =
   callAPI defOpts {
       path      = "selllimit"
@@ -164,19 +166,19 @@ sellLimit keys market quantity rate =
 cancel
   :: APIKeys -- ^ Bittrex API credentials
   -> UUID    -- ^ uuid of buy or sell order
-  -> IO (Either ErrorMessage Value)
-cancel keys uuid =
+  -> IO (Either ErrorMessage (Maybe Text))
+cancel keys (UUID uuid) =
   callAPI defOpts {
       path      = "cancel"
     , keys      = keys
     , apiType   = MarketAPI
-    , qParams   = [ ("uuid", uuid ) ]
+    , qParams   = [ ("uuid", T.unpack uuid ) ]
     }
 
 -- | Used to retrieve all balances from your account
 getBalances
   :: APIKeys -- ^ Bittrex API credentials
-  -> IO (Either ErrorMessage Value)
+  -> IO (Either ErrorMessage [Balance])
 getBalances keys =
   callAPI defOpts {
       path    = "getbalances"
@@ -188,13 +190,13 @@ getBalances keys =
 getBalance
   :: APIKeys -- ^ Bittrex API credentials
   -> CurrencyName -- ^ a string literal for the currency (ex: LTC)
-  -> IO (Either ErrorMessage Value)
+  -> IO (Either ErrorMessage Balance)
 getBalance keys currency =
   callAPI defOpts {
       path    = "getbalance"
     , keys    = keys
     , apiType = AccountAPI
-    , qParams = pure ("currency", show currency )
+    , qParams = pure ("currency", T.unpack currency )
     }
 
 -- | Used to retrieve or generate an address for a specific currency.
@@ -202,21 +204,20 @@ getBalance keys currency =
 getDepositAddress
   :: APIKeys -- ^ Bittrex API credentials
   -> CurrencyName -- ^ a string literal for the currency (ie. BTC)
-  -> IO (Either ErrorMessage Value)
+  -> IO (Either ErrorMessage DepositAddress)
 getDepositAddress keys currency =
   callAPI defOpts {
       path    = "getdepositaddress"
     , apiType = AccountAPI
     , keys    = keys
-    , qParams = pure ("currency", show currency )
+    , qParams = pure ("currency", T.unpack currency )
     }
-
 
 -- | Used to retrieve your withdrawal history.
 getWithdrawalHistory
   :: APIKeys -- ^ Bittrex API credentials
   -> CurrencyName
-  -> IO (Either ErrorMessage Value)
+  -> IO (Either ErrorMessage [WithdrawalHistory])
 getWithdrawalHistory keys currency =
   callAPI defOpts {
       path    = "getwithdrawalhistory"
@@ -236,7 +237,7 @@ getOrderHistory keys market =
     , apiType = AccountAPI
     , keys    = keys
     , qParams = [ ("market", camelToDash (show m) )
-                | Just m <- [market]
+                | Just m <- pure market
                 ]
     }
 
@@ -245,46 +246,48 @@ getOrder
   :: APIKeys -- ^ Bittrex API credentials
   -> UUID    -- ^ the uuid of the buy or sell order
   -> IO (Either ErrorMessage Value)
-getOrder keys uuid =
+getOrder keys (UUID uuid) =
   callAPI defOpts {
       path = "getorder"
     , keys = keys
     , apiType = AccountAPI
-    , qParams   = [ ("uuid", uuid) ]
+    , qParams   = [ ("uuid", T.unpack uuid) ]
     }
 
 -- | Used to withdraw funds from your account. note: please account for txfee.
 withdraw
   :: APIKeys         -- ^ Bittrex API credentials
-  -> Currency        -- ^ A string literal for the currency (ie. BTC)
+  -> CurrencyName    -- ^ A string literal for the currency (ie. BTC)
   -> Quantity        -- ^ The quantity of coins to withdraw
   -> Address         -- ^ The address where to send the funds.
   -> Maybe PaymentId -- ^ used for CryptoNotes/BitShareX/Nxt optional field (memo/paymentid)
-  -> IO (Either ErrorMessage Value)
+  -> IO (Either ErrorMessage UUID)
 withdraw keys currency quantity address payment =
   callAPI defOpts {
       path      = "withdraw"
     , keys      = keys
     , apiType   = AccountAPI
-    , qParams   = [ ("currency", show currency )
+    , qParams   = [ ("currency", T.unpack currency )
                   , ("quantity", show quantity )
-                  , ("address", show address )
+                  , ("address", address )
                   ] <> [ ("paymentid", show p )
-                       | Just p <- [payment]
+                       | Just p <- pure payment
                        ]
     }
 
 -- | Used to retrieve your deposit history.
 getDepositHistory
-  :: APIKeys -- ^ Bittrex API credentials
-  -> Maybe CurrencyName -- ^ A string literal for the currecy (ie. BTC). If `Nothing`, will return for all currencies
-  -> IO (Either ErrorMessage Value)
+  :: APIKeys
+  -- ^ Bittrex API credentials
+  -> Maybe CurrencyName
+  -- ^ A string literal for the currecy (ie. BTC). If `Nothing`, will return for all currencies
+  -> IO (Either ErrorMessage [DepositHistory])
 getDepositHistory keys currency =
   callAPI defOpts {
       path = "getdeposithistory"
     , apiType = AccountAPI
     , keys = keys
     , qParams   = [ ("currency", show c)
-                  | Just c <- [ currency ]
+                  | Just c <- pure currency
                   ]
     }

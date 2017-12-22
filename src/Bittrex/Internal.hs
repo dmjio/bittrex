@@ -14,7 +14,7 @@ import           Data.List.Split         (splitOn)
 import           Data.Monoid
 import           Data.Time.Clock.POSIX
 import           Network.Wreq
-
+import           Debug.Trace
 import           Bittrex.Types
 
 -- | Default API options
@@ -40,7 +40,7 @@ callAPI APIOpts {..} = do
                BC.pack $ showDigest $
                  hmacSha512 (L.fromStrict (BC.pack secretKey)) $
                    L.fromStrict (BC.pack urlForHash)
-            ]
+               ]
             else o
       urlForHash = init $
         mconcat [ url
@@ -61,7 +61,7 @@ callAPI APIOpts {..} = do
            then case fromJSON result of
                   Error s  -> Left (DecodeFailure s result)
                   Success m -> Right m
-           else case fromJSON result of
+           else case fromJSON msg of
                   Success m -> Left (BittrexError m)
                   Error s -> Left (DecodeFailure s msg)
 
