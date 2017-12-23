@@ -35,6 +35,7 @@ import           Data.Aeson
 import           Data.Monoid
 import           Data.Text        (Text)
 import qualified Data.Text        as T
+import           Data.Scientific
 
 import           Bittrex.Types
 import           Bittrex.Util
@@ -138,8 +139,8 @@ buyLimit keys market quantity rate =
     , keys      = keys
     , apiType   = MarketAPI
     , qParams   = [ ("market", camelToDash $ show market )
-                  , ("quantity", show quantity )
-                  , ("rate", show rate )
+                  , ("quantity", formatScientific Fixed Nothing quantity )
+                  , ("rate", formatScientific Fixed Nothing rate )
                   ]
     }
 
@@ -157,8 +158,8 @@ sellLimit keys market quantity rate =
     , keys      = keys
     , apiType   = MarketAPI
     , qParams   = [ ("market", camelToDash $ show market )
-                  , ("quantity", show quantity )
-                  , ("rate", show rate )
+                  , ("quantity", formatScientific Fixed Nothing quantity )
+                  , ("rate", formatScientific Fixed Nothing rate )
                   ]
     }
 
@@ -223,7 +224,9 @@ getWithdrawalHistory keys currency =
       path    = "getwithdrawalhistory"
     , apiType = AccountAPI
     , keys    = keys
-    , qParams = pure ("currency", show currency )
+    , qParams = pure ( "currency"
+                     , show currency
+                     )
     }
 
 -- | Used to retrieve your order history.
@@ -268,7 +271,7 @@ withdraw keys currency quantity address payment =
     , keys      = keys
     , apiType   = AccountAPI
     , qParams   = [ ("currency", T.unpack currency )
-                  , ("quantity", show quantity )
+                  , ("quantity", formatScientific Fixed Nothing quantity )
                   , ("address", address )
                   ] <> [ ("paymentid", show p )
                        | Just p <- pure payment
