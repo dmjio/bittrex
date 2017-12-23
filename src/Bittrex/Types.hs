@@ -253,3 +253,91 @@ instance FromJSON Balance where
   parseJSON = genericParseJSON defaultOptions {
     fieldLabelModifier = drop 1
   }
+
+data OrderType
+  = SELL
+  | BUY
+  | LIMIT_SELL
+  | LIMIT_BUY
+  deriving (Show, Generic, Eq)
+
+instance FromJSON OrderType
+
+data OpenOrder
+  = OpenOrder
+  { ooUuid :: Maybe Text
+  , ooOrderUuid :: Text
+  , ooExchange :: Text
+  , ooOrderType :: OrderType
+  , ooQuantity :: Scientific
+  , ooQuantityRemaining :: Scientific
+  , ooLimit :: Scientific
+  , ooCommissionPaid :: Scientific
+  , ooPrice :: Scientific
+  , ooPricePerUnit :: Maybe Scientific
+  , ooOpened :: Text
+  , ooClosed :: Maybe Text
+  , ooCancelInitiated :: Bool
+  , ooImmediateOrCancel :: Bool
+  , ooIsConditional :: Bool
+  , ooCondition :: Maybe Text
+  , ooConditionTarget :: Maybe Text
+  } deriving (Show, Eq, Generic)
+
+instance FromJSON OpenOrder where
+  parseJSON = genericParseJSON defaultOptions {
+    fieldLabelModifier = drop 2
+  }
+
+data OrderHistory
+  = OrderHistory
+    { ohOrderUuid :: Text
+    , ohExchange :: Text
+    , ohTimeStamp :: Text
+    , ohOrderType :: OrderType
+    , ohLimit :: Scientific
+    , ohQuantity :: Scientific
+    , ohQuantityRemaining :: Scientific
+    , ohCommission :: Scientific
+    , ohPrice :: Scientific
+    , ohPricePerUnit :: Maybe Scientific
+    , ohIsConditional :: Bool
+    , ohImmediateOrCancel :: Bool
+    } deriving (Show, Eq, Generic)
+
+instance FromJSON OrderHistory where
+  parseJSON = genericParseJSON defaultOptions {
+    fieldLabelModifier = drop 2
+  }
+
+data Order
+  = Order
+    { oAccountId :: Maybe Text
+    , oOrderUuid :: Text
+    , oExchange :: Text
+    , oOrderType :: OrderType
+    , oQuantity :: Scientific
+    , oQuantityRemaining :: Scientific
+    , oLimit :: Scientific
+    , oReserved :: Scientific
+    , oReservedRemaining :: Scientific
+    , oCommissionReserved :: Scientific
+    , oCommissionReserveRemaining :: Scientific
+    , oCommissionPaid :: Scientific
+    , oPrice :: Scientific
+    , oPricePerUnit :: Maybe Scientific
+    , oOpen :: Text
+    , oIsOpen :: Bool
+    , oSentinal :: Text
+    , oTimeStamp :: Text
+    , oCommission :: Scientific
+    , oIsConditional :: Bool
+    , oImmediateOrCancel :: Bool
+    , oCancelInitiated :: Bool
+    , oCondition :: Text
+    } deriving (Show, Eq, Generic)
+
+instance FromJSON Order where
+  parseJSON = genericParseJSON defaultOptions {
+    fieldLabelModifier = drop 1
+  }

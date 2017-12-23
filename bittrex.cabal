@@ -21,15 +21,14 @@ library
   other-modules:       Bittrex.Internal
   hs-source-dirs:      src
   default-language:    Haskell2010
-  build-depends:       Decimal
-                     , SHA
-                     , aeson
+  build-depends:       aeson
                      , base < 5
                      , bytestring
                      , http-client-tls
                      , lens
                      , lens-aeson
                      , scientific
+                     , SHA
                      , split
                      , text
                      , time

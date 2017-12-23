@@ -116,7 +116,7 @@ getMarketHistory market =
 getOpenOrders
   :: APIKeys    -- ^ Bittrex API credentials
   -> MarketName -- ^ String literal for the market (ie. BTC-LTC)
-  -> IO (Either ErrorMessage Value)
+  -> IO (Either ErrorMessage [OpenOrder])
 getOpenOrders keys market =
   callAPI defOpts {
       path      = "getopenorders"
@@ -230,7 +230,7 @@ getWithdrawalHistory keys currency =
 getOrderHistory
   :: APIKeys -- ^ Bittrex API credentials
   -> Maybe MarketName -- ^ a string literal for the market (ie. BTC-LTC). If ommited, will return for all markets
-  -> IO (Either ErrorMessage Value)
+  -> IO (Either ErrorMessage [OrderHistory] )
 getOrderHistory keys market =
   callAPI defOpts {
       path    = "getorderhistory"
@@ -245,7 +245,7 @@ getOrderHistory keys market =
 getOrder
   :: APIKeys -- ^ Bittrex API credentials
   -> UUID    -- ^ the uuid of the buy or sell order
-  -> IO (Either ErrorMessage Value)
+  -> IO (Either ErrorMessage Order)
 getOrder keys (UUID uuid) =
   callAPI defOpts {
       path = "getorder"

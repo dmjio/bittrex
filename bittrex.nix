@@ -1,13 +1,13 @@
-{ mkDerivation, aeson, base, bytestring, Decimal, http-client-tls
-, lens, lens-aeson, SHA, split, stdenv, text, time, wreq
+{ mkDerivation, aeson, base, bytestring, http-client-tls, lens
+, lens-aeson, scientific, SHA, split, stdenv, text, time, wreq
 }:
 mkDerivation {
   pname = "bittrex";
   version = "0.1.0.0";
   src = ./.;
   libraryHaskellDepends = [
-    aeson base bytestring Decimal http-client-tls lens lens-aeson SHA
-    split text time wreq
+    aeson base bytestring http-client-tls lens lens-aeson scientific
+    SHA split text time wreq
   ];
   homepage = "https://github.com/dmjio/bittrex";
   description = "API bindings to bittrex.com";
