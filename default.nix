@@ -1,2 +1,2 @@
-{ pkgs ? import <nixpkgs> {} }:
- pkgs.haskellPackages.callPackage ./bittrex.nix {}
+{ pkgs ? import <nixpkgs> {}, compiler ? "ghc802" }:
+ pkgs.haskell.packages.${compiler}.callPackage ./bittrex.nix {}
