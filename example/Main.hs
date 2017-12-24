@@ -26,8 +26,16 @@ main = do
   Right t <- getMarketSummary BTC_DOGE
   print t
 
-  putStrLn "Order book for BTC-DOGE market"
-  book <- getOrderBook BTC_DOGE Both
+  putStrLn "Get market summaries"
+  Right t <- getMarketSummaries
+  print t
+
+  putStrLn "Order book sells for for BTC-DOGE market"
+  book <- getOrderBookSells BTC_DOGE
+  print book
+
+  putStrLn "Order book buys for for BTC-DOGE market"
+  book <- getOrderBookBuys BTC_DOGE
   print book
 
   putStrLn "Market history for BTC-DOGE"
