@@ -32,10 +32,11 @@ module Bittrex.API
   ) where
 
 import           Data.Aeson
+import           Data.Char
 import           Data.Monoid
+import           Data.Scientific
 import           Data.Text        (Text)
 import qualified Data.Text        as T
-import           Data.Scientific
 
 import           Bittrex.Types
 import           Bittrex.Util
@@ -70,7 +71,7 @@ getTicker
   -> IO (Either ErrorMessage Ticker)
 getTicker market =
   callAPI defOpts {
-      qParams = [("market", show market)]
+      qParams = [("market", camelToDash $ show market)]
     , path = "getticker"
     }
 
@@ -86,7 +87,7 @@ getMarketSummary
   -> IO (Either ErrorMessage Value)
 getMarketSummary market =
   callAPI defOpts {
-      qParams = [("market", show market)]
+      qParams = pure ("market", camelToDash $ show market)
     , path = "getmarketsummary"
     }
 
@@ -94,12 +95,12 @@ getMarketSummary market =
 getOrderBook
   :: MarketName -- ^ a string literal for the market (ex: `BTC-LTC`)
   -> OrderBookType -- ^ buy, sell or both to identify the type of orderbook to return.
-  -> IO (Either ErrorMessage OrderBook)
+  -> IO (Either ErrorMessage [OrderBook])
 getOrderBook market orderBookType =
   callAPI defOpts {
       path = "getorderbook"
-    , qParams = [ ("market", show market)
-                , ("type", show orderBookType)
+    , qParams = [ ("market", camelToDash $ show market)
+                , ("type", map toLower $ show orderBookType)
                 ]
     }
 
@@ -110,7 +111,7 @@ getMarketHistory
 getMarketHistory market =
   callAPI defOpts {
       path = "getmarkethistory"
-    , qParams = pure ("market", show market)
+    , qParams = pure ("market", camelToDash $ show market)
     }
 
 -- | Get all orders that you currently have opened. A specific market can be requested
