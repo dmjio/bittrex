@@ -6,11 +6,12 @@ bittrex
 ![BSD3 License](http://img.shields.io/badge/license-BSD3-brightgreen.svg)
 [![Build Status](https://travis-ci.org/dmjio/bittrex.svg?branch=master)](https://travis-ci.org/dmjio/bittrex)
 
-Haskell bindings the Bittrex exchange
+# About
 
-https://bittrex.com/
+Haskell bindings to the [Bittrex](https://bittrex.com/) cryptocurrency exchange.
 
 # Usage
+
 ```haskell
 module Main where
 
@@ -58,3 +59,7 @@ main = do
   Right balances <- getBalances keys
   forM_ balances print
 ```
+
+# License
+
+[BSD3](LICENSE) © David Johnson
