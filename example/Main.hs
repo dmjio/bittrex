@@ -34,10 +34,6 @@ main = do
   Right history <- getMarketHistory BTC_DOGE
   forM_ history print
 
-  putStrLn "Market history for BTC-DOGE"
-  Right history <- getMarketHistory BTC_DOGE
-  forM_ history print
-
   -- Market usage
   putStrLn "Retrieve your open orders"
   Right openOrders <- getOpenOrders keys BTC_DOGE
