@@ -12,6 +12,7 @@ import           Data.Text            (Text)
 import qualified Data.Text            as T
 import           Data.Time
 import           GHC.Generics
+import           Text.Read            (readMaybe)
 
 type Params = [(String,String)]
 type Rate = Scientific
@@ -324,9 +325,16 @@ data MarketName
   | ETH_ADA
   | BTC_ENG
   | ETH_ENG
-  deriving (Show, Eq, Generic)
+  deriving (Show, Eq, Generic, Read)
 
-data Ticker = Ticker
+instance FromJSON MarketName where
+  parseJSON = withText "MarketName" $ \s ->
+    case readMaybe $ T.unpack (T.replace "-" "_" s) of
+      Nothing -> error $ "Couldn't parse MarketName: " ++ T.unpack s
+      Just k -> pure k
+
+data Ticker
+  = Ticker
   { bid :: Double
   , ask :: Double
   , last :: Double
@@ -382,12 +390,6 @@ instance FromJSON Currency where
       <*> o .: "IsActive"
       <*> o .: "CoinType"
       <*> o .: "BaseAddress"
-
-data OrderBookType
-  = Buy
-  | Sell
-  | Both
-  deriving (Show, Eq)
 
 data OrderBookEntry
   = OrderBookEntry
@@ -599,4 +601,27 @@ data Order
 instance FromJSON Order where
   parseJSON = genericParseJSON defaultOptions {
     fieldLabelModifier = drop 1
+  }
+
+data MarketSummary
+  = MarketSummary
+  { mhMarketName :: MarketName
+  , mhHigh :: Scientific
+  , mhLow :: Scientific
+  , mhVolume :: Scientific
+  , mhLast :: Scientific
+  , mhBaseVolume :: Scientific
+  , mhTimeStamp :: Text
+  , mhBid :: Scientific
+  , mhAsk :: Scientific
+  , mhOpenBuyOrders :: Scientific
+  , mhOpenSellOrders :: Scientific
+  , mhPrevDay :: Scientific
+  , mhCreated :: Text
+  , mhDisplayMarketName :: Maybe Text
+  } deriving (Show, Eq, Generic)
+
+instance FromJSON MarketSummary where
+  parseJSON = genericParseJSON defaultOptions {
+    fieldLabelModifier = drop 2
   }

@@ -13,7 +13,8 @@ module Bittrex.API
   , getTicker
   , getMarketSummaries
   , getMarketSummary
-  , getOrderBook
+  , getOrderBookBuys
+  , getOrderBookSells
   , getMarketHistory
     -- * Market
   , buyLimit
@@ -77,14 +78,14 @@ getTicker market =
 
 -- | Used to get the last 24 hour summary of all active exchanges
 getMarketSummaries
-  :: IO (Either ErrorMessage Value)
+  :: IO (Either ErrorMessage [MarketSummary])
 getMarketSummaries =
   callAPI defOpts { path = "getmarketsummaries" }
 
 -- | Used to get the last 24 hour summary of all active exchanges
 getMarketSummary
   :: MarketName -- ^ a string literal for the market (ex: `BTC-LTC`)
-  -> IO (Either ErrorMessage Value)
+  -> IO (Either ErrorMessage [MarketSummary])
 getMarketSummary market =
   callAPI defOpts {
       qParams = pure ("market", camelToDash $ show market)
@@ -92,15 +93,28 @@ getMarketSummary market =
     }
 
 -- | Used to get retrieve the orderbook for a given market
-getOrderBook
+getOrderBookBuys
   :: MarketName -- ^ a string literal for the market (ex: `BTC-LTC`)
-  -> OrderBookType -- ^ buy, sell or both to identify the type of orderbook to return.
-  -> IO (Either ErrorMessage [OrderBook])
-getOrderBook market orderBookType =
+--  -> OrderBookType -- ^ buy, sell or both to identify the type of orderbook to return.
+  -> IO (Either ErrorMessage [OrderBookEntry])
+getOrderBookBuys market =
   callAPI defOpts {
       path = "getorderbook"
     , qParams = [ ("market", camelToDash $ show market)
-                , ("type", map toLower $ show orderBookType)
+                , ("type", "buy")
+                ]
+    }
+
+-- | Used to get retrieve the orderbook for a given market
+getOrderBookSells
+  :: MarketName -- ^ a string literal for the market (ex: `BTC-LTC`)
+--  -> OrderBookType -- ^ buy, sell or both to identify the type of orderbook to return.
+  -> IO (Either ErrorMessage [OrderBookEntry])
+getOrderBookSells market =
+  callAPI defOpts {
+      path = "getorderbook"
+    , qParams = [ ("market", camelToDash $ show market)
+                , ("type", "sell")
                 ]
     }
 
