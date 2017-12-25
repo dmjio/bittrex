@@ -15,8 +15,10 @@ Haskell bindings to the [Bittrex](https://bittrex.com/) cryptocurrency exchange.
 ```haskell
 module Main where
 
-import Bittrex
-import Control.Monad
+import           Bittrex
+import           Control.Monad
+import           Data.Text     (Text)
+import qualified Data.Text.IO  as T
 
 main :: IO ()
 main = do
@@ -27,7 +29,7 @@ main = do
   putStrLn "Markets"
   Right ms <- getMarkets
   forM_ ms $ \m ->
-    print (marketName m)
+    T.putStrLn (marketName m)
 
   putStrLn "Currencies"
   Right cs <- getCurrencies
@@ -41,8 +43,16 @@ main = do
   Right t <- getMarketSummary BTC_DOGE
   print t
 
-  putStrLn "Order book for BTC-DOGE market"
-  book <- getOrderBook BTC_DOGE Both
+  putStrLn "Get market summaries"
+  Right t <- getMarketSummaries
+  print t
+
+  putStrLn "Order book sells for for BTC-DOGE market"
+  book <- getOrderBookSells BTC_DOGE
+  print book
+
+  putStrLn "Order book buys for for BTC-DOGE market"
+  book <- getOrderBookBuys BTC_DOGE
   print book
 
   putStrLn "Market history for BTC-DOGE"
