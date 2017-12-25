@@ -1,6 +1,5 @@
-{ mkDerivation, aeson, base, bytestring, http-client-tls
-, lens, lens-aeson, scientific, SHA, split, stdenv
-, text, time, wreq
+{ mkDerivation, aeson, base, bytestring, http-client-tls, lens
+, lens-aeson, scientific, SHA, split, stdenv, text, time, wreq
 }:
 mkDerivation {
   pname = "bittrex";
@@ -9,8 +8,8 @@ mkDerivation {
   isLibrary = true;
   isExecutable = true;
   libraryHaskellDepends = [
-    aeson base bytestring http-client-tls lens lens-aeson
-    scientific SHA split text time wreq
+    aeson base bytestring http-client-tls lens lens-aeson scientific
+    SHA split text time wreq
   ];
   executableHaskellDepends = [ base ];
   homepage = "https://github.com/dmjio/bittrex";
