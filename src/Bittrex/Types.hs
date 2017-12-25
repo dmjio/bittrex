@@ -2,8 +2,9 @@
 {-# LANGUAGE DeriveGeneric     #-}
 module Bittrex.Types where
 
+import           Bittrex.Util         (parse)
 import           Data.Aeson
-import           Data.Aeson.Types
+import           Data.Aeson.Types     hiding (parse)
 import           Data.ByteString      (ByteString)
 import qualified Data.ByteString      as B
 import qualified Data.ByteString.Lazy as L
@@ -22,6 +23,13 @@ data APIType
   | AccountAPI
   | MarketAPI
   deriving (Eq)
+
+newtype Time = Time UTCTime
+  deriving (Show, Eq)
+
+instance FromJSON Time where
+  parseJSON = withText "Time" $ \t -> do
+    pure $ Time $ parse (T.unpack t)
 
 instance Show APIType where
   show AccountAPI = "account"
@@ -416,7 +424,7 @@ instance FromJSON OrderBookEntry where
 data MarketHistory
   = MarketHistory
   { marketHistoryId :: Integer
-  , marketHistoryTimeStamp :: Text
+  , marketHistoryTimeStamp :: Time
   , marketHistoryQuantity :: Double
   , marketHistoryPrice :: Double
   , marketHistoryTotal :: Double
@@ -554,7 +562,7 @@ data OrderHistory
   = OrderHistory
     { ohOrderUuid :: Text
     , ohExchange :: Text
-    , ohTimeStamp :: Text
+    , ohTimeStamp :: Time
     , ohOrderType :: OrderType
     , ohLimit :: Scientific
     , ohQuantity :: Scientific
@@ -590,7 +598,7 @@ data Order
     , oOpen :: Text
     , oIsOpen :: Bool
     , oSentinal :: Text
-    , oTimeStamp :: Text
+    , oTimeStamp :: Time
     , oCommission :: Scientific
     , oIsConditional :: Bool
     , oImmediateOrCancel :: Bool
@@ -611,7 +619,7 @@ data MarketSummary
   , mhVolume :: Scientific
   , mhLast :: Scientific
   , mhBaseVolume :: Scientific
-  , mhTimeStamp :: Text
+  , mhTimeStamp :: Time
   , mhBid :: Scientific
   , mhAsk :: Scientific
   , mhOpenBuyOrders :: Scientific
