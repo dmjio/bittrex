@@ -1,7 +1,9 @@
 module Main where
 
-import Bittrex
-import Control.Monad
+import           Bittrex
+import           Control.Monad
+import           Data.Text     (Text)
+import qualified Data.Text.IO  as T
 
 main :: IO ()
 main = do
@@ -12,7 +14,7 @@ main = do
   putStrLn "Markets"
   Right ms <- getMarkets
   forM_ ms $ \m ->
-    print (marketName m)
+    T.putStrLn (marketName m)
 
   putStrLn "Currencies"
   Right cs <- getCurrencies
