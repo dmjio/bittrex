@@ -1,5 +1,6 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Bittrex.Types where
 
 import           Bittrex.Util         (parse)
@@ -11,12 +12,17 @@ import qualified Data.ByteString.Lazy as L
 import           Data.Scientific
 import           Data.Text            (Text)
 import qualified Data.Text            as T
+import           Data.Fixed
 import           Data.Time
 import           GHC.Generics
 import           Text.Read            (readMaybe)
 
+data E8
+
+instance HasResolution E8 where
+  resolution _ = 10^8
+
 type Params = [(String,String)]
-type Rate = Scientific
 
 data APIType
   = PublicAPI
@@ -341,11 +347,86 @@ instance FromJSON MarketName where
       Nothing -> error $ "Couldn't parse MarketName: " ++ T.unpack s
       Just k -> pure k
 
+newtype Bid = Bid (Fixed E8)
+  deriving (Show, Eq, Num, FromJSON)
+
+newtype Ask = Ask (Fixed E8)
+  deriving (Show, Eq, Num, FromJSON)
+
+newtype Last = Last (Fixed E8)
+  deriving (Show, Eq, Num, FromJSON)
+
+newtype High = High (Fixed E8)
+  deriving (Show, Eq, Num, FromJSON)
+
+newtype Low = Low (Fixed E8)
+  deriving (Show, Eq, Num, FromJSON)
+
+newtype Volume = Volume (Fixed E8)
+  deriving (Show, Eq, Num, FromJSON)
+
+newtype BaseVolume = BaseVolume (Fixed E8)
+  deriving (Show, Eq, Num, FromJSON)
+
+newtype PrevDay = PrevDay (Fixed E8)
+  deriving (Show, Eq, Num, FromJSON)
+
+newtype Quantity = Quantity (Fixed E8)
+  deriving (Show, Eq, Num, FromJSON)
+
+newtype Rate = Rate (Fixed E8)
+  deriving (Show, Eq, Num, FromJSON)
+
+newtype Price = Price (Fixed E8)
+  deriving (Show, Eq, Num, FromJSON)
+
+newtype Total = Total (Fixed E8)
+  deriving (Show, Eq, Num, FromJSON)
+
+newtype QuantityRemaining = QuantityRemaining (Fixed E8)
+  deriving (Show, Eq, Num, FromJSON)
+
+newtype Limit = Limit (Fixed E8)
+  deriving (Show, Eq, Num, FromJSON)
+
+newtype CommissionPaid = CommissionPaid (Fixed E8)
+  deriving (Show, Eq, Num, FromJSON)
+
+newtype Balance' = Balance' (Fixed E8)
+  deriving (Show, Eq, Num, FromJSON)
+
+newtype Available = Available (Fixed E8)
+  deriving (Show, Eq, Num, FromJSON)
+
+newtype Pending = Pending (Fixed E8)
+  deriving (Show, Eq, Num, FromJSON)
+
+newtype Reserved = Reserved (Fixed E8)
+  deriving (Show, Eq, Num, FromJSON)
+
+newtype ReserveRemaining = ReserveRemaining (Fixed E8)
+  deriving (Show, Eq, Num, FromJSON)
+
+newtype CommissionReserved = CommissionReserved (Fixed E8)
+  deriving (Show, Eq, Num, FromJSON)
+
+newtype CommissionReserveRemaining = CommissionReserveRemaining (Fixed E8)
+  deriving (Show, Eq, Num, FromJSON)
+
+newtype TxCost = TxCost (Fixed E8)
+  deriving (Show, Eq, Num, FromJSON)
+
+newtype Amount = Amount (Fixed E8)
+  deriving (Show, Eq, Num, FromJSON)
+
+newtype Commission = Commission (Fixed E8)
+  deriving (Show, Eq, Num, FromJSON)
+
 data Ticker
   = Ticker
-  { bid :: Double
-  , ask :: Double
-  , last :: Double
+  { bid :: Bid
+  , ask :: Ask
+  , last :: Last
   } deriving (Generic, Show)
 
 instance FromJSON Ticker where
@@ -354,16 +435,22 @@ instance FromJSON Ticker where
            <*> o .: "Ask"
            <*> o .: "Last"
 
+newtype MinTradeSize = MinTradeSize (Fixed E8)
+  deriving (Show, Eq, Num, FromJSON)
+
+newtype TxFee = TxFee (Fixed E8)
+  deriving (Show, Eq, Num, FromJSON)
+
 data Market
   = Market
   { marketCurrency :: Text
   , baseCurrency :: Text
   , marketCurrencyLong :: Text
   , baseCurrencyLong :: Text
-  , minTradeSize :: Double
-  , marketName :: Text
+  , minTradeSize :: MinTradeSize
+  , marketName :: MarketName
   , isActive :: Bool
-  , created :: Text
+  , created :: Time
   } deriving (Show, Eq)
 
 instance FromJSON Market where
@@ -382,7 +469,7 @@ data Currency
   { currency :: Text
   , currencyLong :: Text
   , minConfirmation :: Int
-  , txFee :: Double
+  , txFee :: TxFee
   , currencyIsActive :: Bool
   , coinType :: Text
   , baseAddress :: Maybe Text
@@ -401,8 +488,8 @@ instance FromJSON Currency where
 
 data OrderBookEntry
   = OrderBookEntry
-  { quantity :: Double
-  , rate :: Double
+  { quantity :: Quantity
+  , rate :: Rate
   } deriving (Show, Eq)
 
 instance FromJSON OrderBook where
@@ -423,13 +510,13 @@ instance FromJSON OrderBookEntry where
 
 data MarketHistory
   = MarketHistory
-  { marketHistoryId :: Integer
-  , marketHistoryTimeStamp :: Time
-  , marketHistoryQuantity :: Double
-  , marketHistoryPrice :: Double
-  , marketHistoryTotal :: Double
-  , marketHistoryFillType :: Text
-  , marketHistoryOrderType :: Text
+  { mhId :: Integer
+  , mhTimeStamp :: Time
+  , mhQuantity :: Quantity
+  , mhPrice :: Price
+  , mhTotal :: Total
+  , mhFillType :: Text
+  , mhOrderType :: Text
   } deriving (Show, Eq)
 
 instance FromJSON MarketHistory where
@@ -442,21 +529,20 @@ instance FromJSON MarketHistory where
                   <*> o .: "FillType"
                   <*> o .: "OrderType"
 
-type Quantity = Scientific
-type Address = String
-type PaymentId = String
-
 -- | API Keys
 data APIKeys = APIKeys
   { apiKey :: String
   , secretKey :: String
   } deriving (Show, Eq)
 
+type Address = String
+type PaymentId = String
+
 data WithdrawalHistory
   = WithdrawalHistory
   { whPaymentUuid :: Text
   , whCurrency :: Text
-  , whAmount :: Scientific
+  , whAmount :: Amount
   , whAddress :: Text
   , whOpened :: Text
   , whAuthorized :: Bool
@@ -511,9 +597,9 @@ instance FromJSON UUID where
 data Balance
   = Balance
   { bCurrency :: Text
-  , bBalance :: Scientific
-  , bAvailable :: Scientific
-  , bPending :: Scientific
+  , bBalance :: Balance'
+  , bAvailable :: Available
+  , bPending :: Pending
   , bCryptoAddress :: Text
   , bUuid :: Maybe Text
   } deriving (Show, Eq, Generic)
@@ -538,14 +624,14 @@ data OpenOrder
   , ooOrderUuid :: Text
   , ooExchange :: Text
   , ooOrderType :: OrderType
-  , ooQuantity :: Scientific
-  , ooQuantityRemaining :: Scientific
-  , ooLimit :: Scientific
-  , ooCommissionPaid :: Scientific
-  , ooPrice :: Scientific
-  , ooPricePerUnit :: Maybe Scientific
-  , ooOpened :: Text
-  , ooClosed :: Maybe Text
+  , ooQuantity :: Quantity
+  , ooQuantityRemaining :: QuantityRemaining
+  , ooLimit :: Limit
+  , ooCommissionPaid :: CommissionPaid
+  , ooPrice :: Price
+  , ooPricePerUnit :: Maybe Price
+  , ooOpened :: Time
+  , ooClosed :: Maybe Time
   , ooCancelInitiated :: Bool
   , ooImmediateOrCancel :: Bool
   , ooIsConditional :: Bool
@@ -564,13 +650,15 @@ data OrderHistory
     , ohExchange :: Text
     , ohTimeStamp :: Time
     , ohOrderType :: OrderType
-    , ohLimit :: Scientific
-    , ohQuantity :: Scientific
-    , ohQuantityRemaining :: Scientific
-    , ohCommission :: Scientific
-    , ohPrice :: Scientific
-    , ohPricePerUnit :: Maybe Scientific
+    , ohLimit :: Limit
+    , ohQuantity :: Quantity
+    , ohQuantityRemaining :: QuantityRemaining
+    , ohCommission :: Commission
+    , ohPrice :: Price
+    , ohPricePerUnit :: Maybe Price
     , ohIsConditional :: Bool
+    , ohCondition :: Text
+    , ohConditionTarget :: Maybe Text
     , ohImmediateOrCancel :: Bool
     } deriving (Show, Eq, Generic)
 
@@ -585,25 +673,26 @@ data Order
     , oOrderUuid :: Text
     , oExchange :: Text
     , oOrderType :: OrderType
-    , oQuantity :: Scientific
-    , oQuantityRemaining :: Scientific
-    , oLimit :: Scientific
-    , oReserved :: Scientific
-    , oReservedRemaining :: Scientific
-    , oCommissionReserved :: Scientific
-    , oCommissionReserveRemaining :: Scientific
-    , oCommissionPaid :: Scientific
-    , oPrice :: Scientific
-    , oPricePerUnit :: Maybe Scientific
-    , oOpen :: Text
+    , oQuantity :: Quantity
+    , oQuantityRemaining :: QuantityRemaining
+    , oLimit :: Limit
+    , oReserved :: Reserved
+    , oReservedRemaining :: ReserveRemaining
+    , oCommissionReserved :: CommissionReserved
+    , oCommissionReserveRemaining :: CommissionReserveRemaining
+    , oCommissionPaid :: CommissionPaid
+    , oPrice :: Price
+    , oPricePerUnit :: Maybe Price
+    , oOpened :: Time
+    , oClosed :: Maybe Time
     , oIsOpen :: Bool
-    , oSentinal :: Text
-    , oTimeStamp :: Time
-    , oCommission :: Scientific
+    , oSentinel :: Text
+    , oCommission :: Commission
     , oIsConditional :: Bool
-    , oImmediateOrCancel :: Bool
     , oCancelInitiated :: Bool
+    , oImmediateOrCancel :: Bool
     , oCondition :: Text
+    , oConditionTarget :: Maybe Text
     } deriving (Show, Eq, Generic)
 
 instance FromJSON Order where
@@ -613,20 +702,20 @@ instance FromJSON Order where
 
 data MarketSummary
   = MarketSummary
-  { mhMarketName :: MarketName
-  , mhHigh :: Scientific
-  , mhLow :: Scientific
-  , mhVolume :: Scientific
-  , mhLast :: Scientific
-  , mhBaseVolume :: Scientific
-  , mhTimeStamp :: Time
-  , mhBid :: Scientific
-  , mhAsk :: Scientific
-  , mhOpenBuyOrders :: Scientific
-  , mhOpenSellOrders :: Scientific
-  , mhPrevDay :: Scientific
-  , mhCreated :: Text
-  , mhDisplayMarketName :: Maybe Text
+  { msMarketName :: MarketName
+  , msHigh :: High
+  , msLow :: Low
+  , msVolume :: Volume
+  , msLast :: Last
+  , msBaseVolume :: BaseVolume
+  , msTimeStamp :: Time
+  , msBid :: Bid
+  , msAsk :: Ask
+  , msOpenBuyOrders :: Int
+  , msOpenSellOrders :: Int
+  , msPrevDay :: PrevDay
+  , msCreated :: Time
+  , msDisplayMarketName :: Maybe Text
   } deriving (Show, Eq, Generic)
 
 instance FromJSON MarketSummary where

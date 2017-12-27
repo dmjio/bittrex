@@ -154,8 +154,8 @@ buyLimit keys market quantity rate =
     , keys      = keys
     , apiType   = MarketAPI
     , qParams   = [ ("market", camelToDash $ show market )
-                  , ("quantity", formatScientific Fixed Nothing quantity )
-                  , ("rate", formatScientific Fixed Nothing rate )
+                  , ("quantity", show quantity )
+                  , ("rate", show rate )
                   ]
     }
 
@@ -173,8 +173,8 @@ sellLimit keys market quantity rate =
     , keys      = keys
     , apiType   = MarketAPI
     , qParams   = [ ("market", camelToDash $ show market )
-                  , ("quantity", formatScientific Fixed Nothing quantity )
-                  , ("rate", formatScientific Fixed Nothing rate )
+                  , ("quantity", show quantity )
+                  , ("rate", show rate )
                   ]
     }
 
@@ -286,7 +286,7 @@ withdraw keys currency quantity address payment =
     , keys      = keys
     , apiType   = AccountAPI
     , qParams   = [ ("currency", T.unpack currency )
-                  , ("quantity", formatScientific Fixed Nothing quantity )
+                  , ("quantity", show quantity )
                   , ("address", address )
                   ] <> [ ("paymentid", show p )
                        | Just p <- pure payment

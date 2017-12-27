@@ -13,8 +13,7 @@ main = do
   -- Public Usage
   putStrLn "Markets"
   Right ms <- getMarkets
-  forM_ ms $ \m ->
-    T.putStrLn (marketName m)
+  forM_ ms (print . marketName)
 
   putStrLn "Currencies"
   Right cs <- getCurrencies
