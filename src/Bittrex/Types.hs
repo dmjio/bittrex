@@ -3,17 +3,17 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Bittrex.Types where
 
-import           Bittrex.Util         (parse)
 import           Data.Aeson
 import           Data.Aeson.Types     hiding (parse)
 import           Data.ByteString      (ByteString)
 import qualified Data.ByteString      as B
 import qualified Data.ByteString.Lazy as L
+import           Data.Fixed
 import           Data.Scientific
 import           Data.Text            (Text)
 import qualified Data.Text            as T
-import           Data.Fixed
 import           Data.Time
+import           Data.Time.Format
 import           GHC.Generics
 import           Text.Read            (readMaybe)
 
@@ -36,6 +36,12 @@ newtype Time = Time UTCTime
 instance FromJSON Time where
   parseJSON = withText "Time" $ \t -> do
     pure $ Time $ parse (T.unpack t)
+      where
+        parse :: String -> UTCTime
+        parse =
+          parseTimeOrError True defaultTimeLocale $
+            iso8601DateFormat (Just "%H:%M:%S%Q")
+
 
 instance Show APIType where
   show AccountAPI = "account"
@@ -73,6 +79,17 @@ instance FromJSON ErrorMessage
 instance FromJSON BittrexError
 
 data MarketName
+  = NewMarket Text
+  | MarketName MarketName'
+  deriving (Show, Eq)
+
+instance FromJSON MarketName where
+  parseJSON = withText "Market Name" $ \t ->
+    pure $ case readMaybe $ T.unpack (T.replace "-" "_" t) of
+       Nothing -> NewMarket t
+       Just k -> MarketName k
+
+data MarketName'
   = BTC_LTC
   | BTC_DOGE
   | BTC_VTC
@@ -345,12 +362,6 @@ data MarketName
   | BTC_UKG
   | ETH_UKG
   deriving (Show, Eq, Generic, Read)
-
-instance FromJSON MarketName where
-  parseJSON = withText "MarketName" $ \s ->
-    case readMaybe $ T.unpack (T.replace "-" "_" s) of
-      Nothing -> error $ "Couldn't parse MarketName: " ++ T.unpack s
-      Just k -> pure k
 
 newtype Bid = Bid (Fixed E8)
   deriving (Show, Eq, Num, FromJSON)
