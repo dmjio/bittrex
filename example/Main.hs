@@ -20,11 +20,11 @@ main = do
   mapM_ print cs
 
   putStrLn "Ticker for BTC-DOGE market"
-  t <- getTicker BTC_DOGE
+  t <- getTicker (MarketName BTC_DOGE)
   print t
 
   putStrLn "Summary of BTC-DOGE market"
-  Right t <- getMarketSummary BTC_DOGE
+  Right t <- getMarketSummary (MarketName BTC_DOGE)
   print t
 
   putStrLn "Get market summaries"
@@ -32,20 +32,20 @@ main = do
   print t
 
   putStrLn "Order book sells for for BTC-DOGE market"
-  book <- getOrderBookSells BTC_DOGE
+  book <- getOrderBookSells (MarketName BTC_DOGE)
   print book
 
   putStrLn "Order book buys for for BTC-DOGE market"
-  book <- getOrderBookBuys BTC_DOGE
+  book <- getOrderBookBuys (MarketName BTC_DOGE)
   print book
 
   putStrLn "Market history for BTC-DOGE"
-  Right history <- getMarketHistory BTC_DOGE
+  Right history <- getMarketHistory (MarketName BTC_DOGE)
   forM_ history print
 
   -- Market usage
   putStrLn "Retrieve your open orders"
-  Right openOrders <- getOpenOrders keys BTC_DOGE
+  Right openOrders <- getOpenOrders keys (MarketName BTC_DOGE)
   forM_ openOrders print
 
   -- Account usage,

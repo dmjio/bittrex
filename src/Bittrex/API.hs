@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE DeriveGeneric       #-}
+{-# LANGUAGE LambdaCase          #-}
 module Bittrex.API
   (
     -- * Overview
@@ -72,7 +73,7 @@ getTicker
   -> IO (Either ErrorMessage Ticker)
 getTicker market =
   callAPI defOpts {
-      qParams = [("market", camelToDash $ show market)]
+      qParams = [("market", toMarket market)]
     , path = "getticker"
     }
 
@@ -88,7 +89,7 @@ getMarketSummary
   -> IO (Either ErrorMessage [MarketSummary])
 getMarketSummary market =
   callAPI defOpts {
-      qParams = pure ("market", camelToDash $ show market)
+      qParams = pure ("market", toMarket market)
     , path = "getmarketsummary"
     }
 
@@ -100,7 +101,7 @@ getOrderBookBuys
 getOrderBookBuys market =
   callAPI defOpts {
       path = "getorderbook"
-    , qParams = [ ("market", camelToDash $ show market)
+    , qParams = [ ("market", toMarket market)
                 , ("type", "buy")
                 ]
     }
@@ -113,7 +114,7 @@ getOrderBookSells
 getOrderBookSells market =
   callAPI defOpts {
       path = "getorderbook"
-    , qParams = [ ("market", camelToDash $ show market)
+    , qParams = [ ("market", toMarket market)
                 , ("type", "sell")
                 ]
     }
@@ -125,7 +126,7 @@ getMarketHistory
 getMarketHistory market =
   callAPI defOpts {
       path = "getmarkethistory"
-    , qParams = pure ("market", camelToDash $ show market)
+    , qParams = pure ("market", toMarket market)
     }
 
 -- | Get all orders that you currently have opened. A specific market can be requested
@@ -137,7 +138,7 @@ getOpenOrders keys market =
   callAPI defOpts {
       path      = "getopenorders"
     , apiType   = MarketAPI
-    , qParams   = pure ("market", camelToDash $ show market)
+    , qParams   = pure ("market", toMarket market)
     , keys      = keys
     }
 
@@ -153,7 +154,7 @@ buyLimit keys market quantity rate =
       path      = "buylimit"
     , keys      = keys
     , apiType   = MarketAPI
-    , qParams   = [ ("market", camelToDash $ show market )
+    , qParams   = [ ("market", toMarket market )
                   , ("quantity", show quantity )
                   , ("rate", show rate )
                   ]
@@ -172,7 +173,7 @@ sellLimit keys market quantity rate =
       path      = "selllimit"
     , keys      = keys
     , apiType   = MarketAPI
-    , qParams   = [ ("market", camelToDash $ show market )
+    , qParams   = [ ("market", toMarket market )
                   , ("quantity", show quantity )
                   , ("rate", show rate )
                   ]
@@ -254,7 +255,7 @@ getOrderHistory keys market =
       path    = "getorderhistory"
     , apiType = AccountAPI
     , keys    = keys
-    , qParams = [ ("market", camelToDash (show m) )
+    , qParams = [ ("market", toMarket m )
                 | Just m <- pure market
                 ]
     }

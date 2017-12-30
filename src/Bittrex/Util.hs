@@ -1,14 +1,15 @@
-module Bittrex.Util ( camelToDash, parse ) where
+module Bittrex.Util ( toMarket ) where
 
-import Data.Time
-import Data.Time.Format
+import           Data.Text        (Text)
+import qualified Data.Text        as T
+
+import           Bittrex.Types
 
 camelToDash :: String -> String
 camelToDash [] = []
 camelToDash ('_':xs) = '-':camelToDash xs
 camelToDash (x:xs) = x:camelToDash xs
 
-parse :: String -> UTCTime
-parse =
-  parseTimeOrError True defaultTimeLocale $
-    iso8601DateFormat (Just "%H:%M:%S%Q")
+toMarket :: MarketName -> String
+toMarket (NewMarket t) = T.unpack t
+toMarket (MarketName k) = camelToDash (show k)
