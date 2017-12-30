@@ -3,7 +3,7 @@ language: nix
 matrix:
   fast_finish: true
   include:
-    - env: GHCVER=ghc802
+    - env: GHCVER=ghc822
 
 before_install:
  - nix-channel --list
