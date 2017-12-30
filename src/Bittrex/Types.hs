@@ -339,6 +339,11 @@ data MarketName
   | ETH_ADA
   | BTC_ENG
   | ETH_ENG
+  | USDT_ADA
+  | USDT_XVG
+  | USDT_NXT
+  | BTC_UKG
+  | ETH_UKG
   deriving (Show, Eq, Generic, Read)
 
 instance FromJSON MarketName where
