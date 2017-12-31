@@ -4,6 +4,6 @@ module Bittrex
   , module Bittrex.Util
   ) where
 
-import Bittrex.API
-import Bittrex.Types
-import Bittrex.Util
+import           Bittrex.API
+import           Bittrex.Types
+import           Bittrex.Util

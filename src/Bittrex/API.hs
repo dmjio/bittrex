@@ -1,8 +1,8 @@
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE OverloadedStrings   #-}
-{-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE DeriveGeneric       #-}
 {-# LANGUAGE LambdaCase          #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE RecordWildCards     #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Bittrex.API
   (
     -- * Overview
@@ -40,9 +40,9 @@ import           Data.Scientific
 import           Data.Text        (Text)
 import qualified Data.Text        as T
 
+import           Bittrex.Internal
 import           Bittrex.Types
 import           Bittrex.Util
-import           Bittrex.Internal
 
 -- $intro
 -- Bittrex provides a simple and powerful REST API to allow you to programatically perform nearly all actions you can from our web interface.

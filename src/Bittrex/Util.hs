@@ -1,7 +1,7 @@
 module Bittrex.Util ( toMarket ) where
 
-import           Data.Text        (Text)
-import qualified Data.Text        as T
+import           Data.Text     (Text)
+import qualified Data.Text     as T
 
 import           Bittrex.Types
 

@@ -1,21 +1,21 @@
-{-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards   #-}
 module Bittrex.Internal where
 
+import           Bittrex.Types
 import           Control.Lens
 import           Data.Aeson
-import           Data.Aeson.Lens         (key, nth)
-import qualified Data.ByteString.Char8   as BC
-import qualified Data.ByteString.Lazy    as L
+import           Data.Aeson.Lens       (key, nth)
+import qualified Data.ByteString.Char8 as BC
+import qualified Data.ByteString.Lazy  as L
 import           Data.Char
 import           Data.Digest.Pure.SHA
 import           Data.List
-import           Data.List.Split         (splitOn)
+import           Data.List.Split       (splitOn)
 import           Data.Monoid
 import           Data.Time.Clock.POSIX
-import           Network.Wreq
 import           Debug.Trace
-import           Bittrex.Types
+import           Network.Wreq
 
 -- | Default API options
 defOpts :: APIOpts
@@ -59,9 +59,9 @@ callAPI APIOpts {..} = do
       Just msg = r ^? responseBody . key "message"
   pure $ if success
            then case fromJSON result of
-                  Error s  -> Left (DecodeFailure s result)
+                  Error s   -> Left (DecodeFailure s result)
                   Success m -> Right m
            else case fromJSON msg of
                   Success m -> Left (BittrexError m)
-                  Error s -> Left (DecodeFailure s msg)
+                  Error s   -> Left (DecodeFailure s msg)
 
