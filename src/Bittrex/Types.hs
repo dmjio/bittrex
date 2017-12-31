@@ -1,28 +1,54 @@
+--------------------------------------------------------------------------------
+
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE RecordWildCards            #-}
+{-# LANGUAGE StandaloneDeriving         #-}
+
+--------------------------------------------------------------------------------
+
 module Bittrex.Types where
 
+--------------------------------------------------------------------------------
+
 import           Data.Aeson
-import           Data.Aeson.Types     hiding (parse)
-import           Data.ByteString      (ByteString)
-import qualified Data.ByteString      as B
-import qualified Data.ByteString.Lazy as L
+import qualified Data.Aeson.Types as Aeson
 import           Data.Fixed
 import           Data.Scientific
-import           Data.Text            (Text)
-import qualified Data.Text            as T
+import           Data.Text        (Text)
+import qualified Data.Text        as Text
 import           Data.Time
 import           Data.Time.Format
-import           GHC.Generics
-import           Text.Read            (readMaybe)
+import           Flow             ((.>))
+import           GHC.Generics     (Generic)
+import           Text.Read        (readMaybe)
+
+--------------------------------------------------------------------------------
 
 data E8
 
 instance HasResolution E8 where
-  resolution _ = 10^8
+  resolution _ = 10 ^ 8
 
-type Params = [(String,String)]
+--------------------------------------------------------------------------------
+
+type Params = [(String, String)]
+
+--------------------------------------------------------------------------------
+
+newtype Time
+  = Time UTCTime
+  deriving (Eq, Show)
+
+instance FromJSON Time where
+  parseJSON = withText "Time" $ \t -> pure (Time (parse (Text.unpack t)))
+    where
+      parse :: String -> UTCTime
+      parse = parseTimeOrError True defaultTimeLocale
+              $ iso8601DateFormat (Just "%H:%M:%S%Q")
+
+--------------------------------------------------------------------------------
 
 data APIType
   = PublicAPI
@@ -30,37 +56,39 @@ data APIType
   | MarketAPI
   deriving (Eq)
 
-newtype Time = Time UTCTime
-  deriving (Show, Eq)
-
-instance FromJSON Time where
-  parseJSON = withText "Time" $ \t -> do
-    pure $ Time $ parse (T.unpack t)
-      where
-        parse :: String -> UTCTime
-        parse =
-          parseTimeOrError True defaultTimeLocale $
-            iso8601DateFormat (Just "%H:%M:%S%Q")
-
-
 instance Show APIType where
   show AccountAPI = "account"
   show PublicAPI  = "public"
   show MarketAPI  = "market"
 
+--------------------------------------------------------------------------------
+
 data APIOpts
   = APIOpts
-  { apiType :: APIType
-  , qParams :: Params
-  , version :: String
-  , path    :: String
-  , keys    :: APIKeys
-  } deriving (Show, Eq)
+    { apiOptsAPIType     :: !APIType
+    , apiOptsQueryParams :: !Params
+    , apiOptsVersion     :: !Text
+    , apiOptsPath        :: !Text
+    , apiOptsKeys        :: !APIKeys
+    }
+  deriving (Eq, Show)
+
+--------------------------------------------------------------------------------
+
+-- FIXME: this is a weird hack
 
 data ErrorMessage
-  = BittrexError BittrexError
-  | DecodeFailure String Value
-  deriving (Show, Eq, Generic)
+  = BittrexError !BittrexError
+  | DecodeFailure !String !Aeson.Value
+  deriving (Eq, Show, Generic)
+
+-- instance FromJSON ErrorMessage where
+--   parseJSON value = do
+--     case Aeson.fromJSON value of
+--       (Aeson.Error  msg) -> pure (DecodeFailure msg value)
+--       (Aeson.Success be) -> pure (BittrexError be)
+
+--------------------------------------------------------------------------------
 
 data BittrexError
   = INVALID_MARKET
@@ -73,21 +101,39 @@ data BittrexError
   | INVALID_CURRENCY
   | WITHDRAWAL_TOO_SMALL
   | CURRENCY_DOES_NOT_EXIST
-  deriving (Show, Eq, Generic)
+  | ADDRESS_GENERATING
+  deriving (Eq, Show, Generic)
 
-instance FromJSON ErrorMessage
-instance FromJSON BittrexError
+instance FromJSON BittrexError where
+  parseJSON (String "INVALID_MARKET")          = pure INVALID_MARKET
+  parseJSON (String "MARKET_NOT_PROVIDED")     = pure MARKET_NOT_PROVIDED
+  parseJSON (String "APIKEY_NOT_PROVIDED")     = pure APIKEY_NOT_PROVIDED
+  parseJSON (String "APIKEY_INVALID")          = pure APIKEY_INVALID
+  parseJSON (String "INVALID_SIGNATURE")       = pure INVALID_SIGNATURE
+  parseJSON (String "NONCE_NOT_PROVIDED")      = pure NONCE_NOT_PROVIDED
+  parseJSON (String "INVALID_PERMISSION")      = pure INVALID_PERMISSION
+  parseJSON (String "INVALID_CURRENCY")        = pure INVALID_CURRENCY
+  parseJSON (String "WITHDRAWAL_TOO_SMALL")    = pure WITHDRAWAL_TOO_SMALL
+  parseJSON (String "CURRENCY_DOES_NOT_EXIST") = pure CURRENCY_DOES_NOT_EXIST
+  parseJSON (String "ADDRESS_GENERATING")      = pure ADDRESS_GENERATING
+
+instance ToJSON BittrexError where
+  toJSON = show .> toJSON
+
+--------------------------------------------------------------------------------
 
 data MarketName
   = NewMarket Text
   | MarketName MarketName'
-  deriving (Show, Eq)
+  deriving (Eq, Show)
 
 instance FromJSON MarketName where
-  parseJSON = withText "Market Name" $ \t ->
-    pure $ case readMaybe $ T.unpack (T.replace "-" "_" t) of
-       Nothing -> NewMarket t
-       Just k  -> MarketName k
+  parseJSON = withText "Market Name" $ \t -> do
+    case readMaybe (Text.unpack (Text.replace "-" "_" t)) of
+      Nothing  -> pure (NewMarket t)
+      (Just k) -> pure (MarketName k)
+
+--------------------------------------------------------------------------------
 
 data MarketName'
   = BTC_LTC
@@ -361,380 +407,673 @@ data MarketName'
   | USDT_NXT
   | BTC_UKG
   | ETH_UKG
-  deriving (Show, Eq, Generic, Read)
+  deriving (Eq, Show, Read, Generic)
 
-newtype Bid = Bid (Fixed E8)
-  deriving (Show, Eq, Num, FromJSON)
+--------------------------------------------------------------------------------
 
-newtype Ask = Ask (Fixed E8)
-  deriving (Show, Eq, Num, FromJSON)
+newtype Bid
+  = Bid (Fixed E8)
+  deriving (Eq, Num, Show)
 
-newtype Last = Last (Fixed E8)
-  deriving (Show, Eq, Num, FromJSON)
+deriving instance FromJSON Bid
 
-newtype High = High (Fixed E8)
-  deriving (Show, Eq, Num, FromJSON)
+--------------------------------------------------------------------------------
 
-newtype Low = Low (Fixed E8)
-  deriving (Show, Eq, Num, FromJSON)
+newtype Ask
+  = Ask (Fixed E8)
+  deriving (Eq, Num, Show)
 
-newtype Volume = Volume (Fixed E8)
-  deriving (Show, Eq, Num, FromJSON)
+deriving instance FromJSON Ask
 
-newtype BaseVolume = BaseVolume (Fixed E8)
-  deriving (Show, Eq, Num, FromJSON)
+--------------------------------------------------------------------------------
 
-newtype PrevDay = PrevDay (Fixed E8)
-  deriving (Show, Eq, Num, FromJSON)
+newtype Last
+  = Last (Fixed E8)
+  deriving (Eq, Num, Show)
 
-newtype Quantity = Quantity (Fixed E8)
-  deriving (Show, Eq, Num, FromJSON)
+deriving instance FromJSON Last
 
-newtype Rate = Rate (Fixed E8)
-  deriving (Show, Eq, Num, FromJSON)
+--------------------------------------------------------------------------------
 
-newtype Price = Price (Fixed E8)
-  deriving (Show, Eq, Num, FromJSON)
+newtype High
+  = High (Fixed E8)
+  deriving (Eq, Num, Show)
 
-newtype Total = Total (Fixed E8)
-  deriving (Show, Eq, Num, FromJSON)
+deriving instance FromJSON High
 
-newtype QuantityRemaining = QuantityRemaining (Fixed E8)
-  deriving (Show, Eq, Num, FromJSON)
+--------------------------------------------------------------------------------
 
-newtype Limit = Limit (Fixed E8)
-  deriving (Show, Eq, Num, FromJSON)
+newtype Low
+  = Low (Fixed E8)
+  deriving (Eq, Num, Show)
 
-newtype CommissionPaid = CommissionPaid (Fixed E8)
-  deriving (Show, Eq, Num, FromJSON)
+deriving instance FromJSON Low
 
-newtype Balance' = Balance' (Fixed E8)
-  deriving (Show, Eq, Num, FromJSON)
+--------------------------------------------------------------------------------
 
-newtype Available = Available (Fixed E8)
-  deriving (Show, Eq, Num, FromJSON)
+newtype Volume
+  = Volume (Fixed E8)
+  deriving (Eq, Num, Show)
 
-newtype Pending = Pending (Fixed E8)
-  deriving (Show, Eq, Num, FromJSON)
+deriving instance FromJSON Volume
 
-newtype Reserved = Reserved (Fixed E8)
-  deriving (Show, Eq, Num, FromJSON)
+--------------------------------------------------------------------------------
 
-newtype ReserveRemaining = ReserveRemaining (Fixed E8)
-  deriving (Show, Eq, Num, FromJSON)
+newtype BaseVolume
+  = BaseVolume (Fixed E8)
+  deriving (Eq, Num, Show)
 
-newtype CommissionReserved = CommissionReserved (Fixed E8)
-  deriving (Show, Eq, Num, FromJSON)
+deriving instance FromJSON BaseVolume
 
-newtype CommissionReserveRemaining = CommissionReserveRemaining (Fixed E8)
-  deriving (Show, Eq, Num, FromJSON)
+--------------------------------------------------------------------------------
 
-newtype TxCost = TxCost (Fixed E8)
-  deriving (Show, Eq, Num, FromJSON)
+newtype PrevDay
+  = PrevDay (Fixed E8)
+  deriving (Eq, Num, Show)
 
-newtype Amount = Amount (Fixed E8)
-  deriving (Show, Eq, Num, FromJSON)
+deriving instance FromJSON PrevDay
 
-newtype Commission = Commission (Fixed E8)
-  deriving (Show, Eq, Num, FromJSON)
+--------------------------------------------------------------------------------
+
+newtype Quantity
+  = Quantity (Fixed E8)
+  deriving (Eq, Num, Show)
+
+deriving instance FromJSON Quantity
+
+--------------------------------------------------------------------------------
+
+newtype Rate
+  = Rate (Fixed E8)
+  deriving (Eq, Num, Show)
+
+deriving instance FromJSON Rate
+
+--------------------------------------------------------------------------------
+
+newtype Price
+  = Price (Fixed E8)
+  deriving (Eq, Num, Show)
+
+deriving instance FromJSON Price
+
+--------------------------------------------------------------------------------
+
+newtype Total
+  = Total (Fixed E8)
+  deriving (Eq, Num, Show)
+
+deriving instance FromJSON Total
+
+--------------------------------------------------------------------------------
+
+newtype QuantityRemaining
+  = QuantityRemaining (Fixed E8)
+  deriving (Eq, Num, Show)
+
+deriving instance FromJSON QuantityRemaining
+
+--------------------------------------------------------------------------------
+
+newtype Limit
+  = Limit (Fixed E8)
+  deriving (Eq, Num, Show)
+
+deriving instance FromJSON Limit
+
+--------------------------------------------------------------------------------
+
+newtype CommissionPaid
+  = CommissionPaid (Fixed E8)
+  deriving (Eq, Num, Show)
+
+deriving instance FromJSON CommissionPaid
+
+--------------------------------------------------------------------------------
+
+-- FIXME: rename this...
+
+newtype Balance'
+  = Balance' (Fixed E8)
+  deriving (Eq, Num, Show)
+
+deriving instance FromJSON Balance'
+
+--------------------------------------------------------------------------------
+
+newtype Available
+  = Available (Fixed E8)
+  deriving (Eq, Num, Show)
+
+deriving instance FromJSON Available
+
+--------------------------------------------------------------------------------
+
+newtype Pending
+  = Pending (Fixed E8)
+  deriving (Eq, Num, Show)
+
+deriving instance FromJSON Pending
+
+--------------------------------------------------------------------------------
+
+newtype Reserved
+  = Reserved (Fixed E8)
+  deriving (Eq, Num, Show)
+
+deriving instance FromJSON Reserved
+
+--------------------------------------------------------------------------------
+
+newtype ReserveRemaining
+  = ReserveRemaining (Fixed E8)
+  deriving (Eq, Num, Show)
+
+deriving instance FromJSON ReserveRemaining
+
+--------------------------------------------------------------------------------
+
+newtype CommissionReserved
+  = CommissionReserved (Fixed E8)
+  deriving (Eq, Num, Show)
+
+deriving instance FromJSON CommissionReserved
+
+--------------------------------------------------------------------------------
+
+newtype CommissionReserveRemaining
+  = CommissionReserveRemaining (Fixed E8)
+  deriving (Eq, Num, Show)
+
+deriving instance FromJSON CommissionReserveRemaining
+
+--------------------------------------------------------------------------------
+
+newtype TxCost
+  = TxCost (Fixed E8)
+  deriving (Eq, Num, Show)
+
+deriving instance FromJSON TxCost
+
+--------------------------------------------------------------------------------
+
+newtype Amount
+  = Amount (Fixed E8)
+  deriving (Eq, Num, Show)
+
+deriving instance FromJSON Amount
+
+--------------------------------------------------------------------------------
+
+newtype Commission
+  = Commission (Fixed E8)
+  deriving (Eq, Num, Show)
+
+deriving instance FromJSON Commission
+
+--------------------------------------------------------------------------------
 
 data Ticker
   = Ticker
-  { bid  :: Bid
-  , ask  :: Ask
-  , last :: Last
-  } deriving (Generic, Show)
+    { tickerBid  :: !Bid
+    , tickerAsk  :: !Ask
+    , tickerLast :: !Last
+    }
+  deriving (Show, Generic)
 
 instance FromJSON Ticker where
-  parseJSON = withObject "Ticker" $ \o ->
-    Ticker <$> o .: "Bid"
-           <*> o .: "Ask"
-           <*> o .: "Last"
+  parseJSON = withObject "Ticker" $ \o -> do
+    tickerBid  <- o .: "Bid"
+    tickerAsk  <- o .: "Ask"
+    tickerLast <- o .: "Last"
+    pure (Ticker {..})
 
-newtype MinTradeSize = MinTradeSize (Fixed E8)
-  deriving (Show, Eq, Num, FromJSON)
+--------------------------------------------------------------------------------
 
-newtype TxFee = TxFee (Fixed E8)
-  deriving (Show, Eq, Num, FromJSON)
+newtype MinTradeSize
+  = MinTradeSize (Fixed E8)
+  deriving (Eq, Num, Show)
+
+deriving instance FromJSON MinTradeSize
+
+--------------------------------------------------------------------------------
+
+newtype TxFee
+  = TxFee (Fixed E8)
+  deriving (Eq, Num, Show)
+
+deriving instance FromJSON TxFee
+
+--------------------------------------------------------------------------------
 
 data Market
   = Market
-  { marketCurrency     :: Text
-  , baseCurrency       :: Text
-  , marketCurrencyLong :: Text
-  , baseCurrencyLong   :: Text
-  , minTradeSize       :: MinTradeSize
-  , marketName         :: MarketName
-  , isActive           :: Bool
-  , created            :: Time
-  } deriving (Show, Eq)
+    { marketMarketCurrency     :: !Text
+    , marketBaseCurrency       :: !Text
+    , marketMarketCurrencyLong :: !Text
+    , marketBaseCurrencyLong   :: !Text
+    , marketMinTradeSize       :: !MinTradeSize
+    , marketName               :: !MarketName
+    , marketIsActive           :: !Bool
+    , marketCreated            :: !Time
+    }
+  deriving (Eq, Show)
 
 instance FromJSON Market where
-  parseJSON = withObject "Market" $ \o ->
-    Market <$> o .: "MarketCurrency"
-           <*> o .: "BaseCurrency"
-           <*> o .: "MarketCurrencyLong"
-           <*> o .: "BaseCurrencyLong"
-           <*> o .: "MinTradeSize"
-           <*> o .: "MarketName"
-           <*> o .: "IsActive"
-           <*> o .: "Created"
+  parseJSON = withObject "Market" $ \o -> do
+    marketMarketCurrency     <- o .: "MarketCurrency"
+    marketBaseCurrency       <- o .: "BaseCurrency"
+    marketMarketCurrencyLong <- o .: "MarketCurrencyLong"
+    marketBaseCurrencyLong   <- o .: "BaseCurrencyLong"
+    marketMinTradeSize       <- o .: "MinTradeSize"
+    marketName               <- o .: "MarketName"
+    marketIsActive           <- o .: "IsActive"
+    marketCreated            <- o .: "Created"
+    pure (Market {..})
+
+--------------------------------------------------------------------------------
 
 data Currency
   = Currency
-  { currency         :: Text
-  , currencyLong     :: Text
-  , minConfirmation  :: Int
-  , txFee            :: TxFee
-  , currencyIsActive :: Bool
-  , coinType         :: Text
-  , baseAddress      :: Maybe Text
-  } deriving (Show, Eq)
+    { currencyName            :: !Text
+    , currencyNameLong        :: !Text
+    , currencyMinConfirmation :: !Int
+    , currencyTxFee           :: !TxFee
+    , currencyIsActive        :: !Bool
+    , currencyCoinType        :: !Text
+    , currencyBaseAddress     :: !(Maybe Text)
+    }
+  deriving (Eq, Show)
 
 instance FromJSON Currency where
-  parseJSON = withObject "Currency" $ \o ->
-    Currency
-      <$> o .: "Currency"
-      <*> o .: "CurrencyLong"
-      <*> o .: "MinConfirmation"
-      <*> o .: "TxFee"
-      <*> o .: "IsActive"
-      <*> o .: "CoinType"
-      <*> o .: "BaseAddress"
+  parseJSON = withObject "Currency" $ \o -> do
+    currencyName            <- o .:  "Currency"
+    currencyNameLong        <- o .:  "CurrencyLong"
+    currencyMinConfirmation <- o .:  "MinConfirmation"
+    currencyTxFee           <- o .:  "TxFee"
+    currencyIsActive        <- o .:  "IsActive"
+    currencyCoinType        <- o .:  "CoinType"
+    currencyBaseAddress     <- o .:? "BaseAddress"
+    pure (Currency {..})
+
+--------------------------------------------------------------------------------
 
 data OrderBookEntry
   = OrderBookEntry
-  { quantity :: Quantity
-  , rate     :: Rate
-  } deriving (Show, Eq)
+    { orderBookEntryQuantity :: !Quantity
+    , orderBookEntryRate     :: !Rate
+    }
+  deriving (Eq, Show)
 
-instance FromJSON OrderBook where
-  parseJSON = withObject "OrderBook" $ \o ->
-    OrderBook <$> o .: "buy"
-              <*> o .: "sell"
+instance FromJSON OrderBookEntry where
+  parseJSON = withObject "OrderBookEntry" $ \o -> do
+    orderBookEntryQuantity <- o .: "Quantity"
+    orderBookEntryRate     <- o .: "Rate"
+    pure (OrderBookEntry {..})
+
+--------------------------------------------------------------------------------
 
 data OrderBook
   = OrderBook
-  { buy  :: [OrderBookEntry]
-  , sell :: [OrderBookEntry]
-  } deriving (Show, Eq)
+    { orderBookBuy  :: ![OrderBookEntry]
+    , orderBookSell :: ![OrderBookEntry]
+    }
+  deriving (Eq, Show)
 
-instance FromJSON OrderBookEntry where
-  parseJSON = withObject "OrderBookEntry" $ \o ->
-    OrderBookEntry <$> o .: "Quantity"
-                   <*> o .: "Rate"
+instance FromJSON OrderBook where
+  parseJSON = withObject "OrderBook" $ \o -> do
+    orderBookBuy  <- o .: "buy"
+    orderBookSell <- o .: "sell"
+    pure (OrderBook {..})
+
+--------------------------------------------------------------------------------
 
 data MarketHistory
   = MarketHistory
-  { mhId        :: Integer
-  , mhTimeStamp :: Time
-  , mhQuantity  :: Quantity
-  , mhPrice     :: Price
-  , mhTotal     :: Total
-  , mhFillType  :: Text
-  , mhOrderType :: Text
-  } deriving (Show, Eq)
+    { marketHistoryId        :: !Integer -- FIXME
+    , marketHistoryTimeStamp :: !Time
+    , marketHistoryQuantity  :: !Quantity
+    , marketHistoryPrice     :: !Price
+    , marketHistoryTotal     :: !Total
+    , marketHistoryFillType  :: !Text
+    , marketHistoryOrderType :: !Text
+    }
+  deriving (Eq, Show)
 
 instance FromJSON MarketHistory where
-  parseJSON = withObject "MarketHistory" $ \o ->
-    MarketHistory <$> o .: "Id"
-                  <*> o .: "TimeStamp"
-                  <*> o .: "Quantity"
-                  <*> o .: "Price"
-                  <*> o .: "Total"
-                  <*> o .: "FillType"
-                  <*> o .: "OrderType"
+  parseJSON = withObject "MarketHistory" $ \o -> do
+    marketHistoryId        <- o .: "Id"
+    marketHistoryTimeStamp <- o .: "TimeStamp"
+    marketHistoryQuantity  <- o .: "Quantity"
+    marketHistoryPrice     <- o .: "Price"
+    marketHistoryTotal     <- o .: "Total"
+    marketHistoryFillType  <- o .: "FillType"
+    marketHistoryOrderType <- o .: "OrderType"
+    pure (MarketHistory {..})
+
+--------------------------------------------------------------------------------
 
 -- | API Keys
-data APIKeys = APIKeys
-  { apiKey    :: String
-  , secretKey :: String
-  } deriving (Show, Eq)
+data APIKeys
+  = APIKeys
+    { apiKey    :: !String -- FIXME: should be Text??
+    , secretKey :: !String -- FIXME: should be Text??
+    }
+  deriving (Eq, Show)
 
-type Address = String
-type PaymentId = String
+--------------------------------------------------------------------------------
+
+type Address = String -- FIXME: should be Text??
+
+--------------------------------------------------------------------------------
+
+type PaymentId = String -- FIXME: should be Text??
+
+--------------------------------------------------------------------------------
 
 data WithdrawalHistory
   = WithdrawalHistory
-  { whPaymentUuid    :: Text
-  , whCurrency       :: Text
-  , whAmount         :: Amount
-  , whAddress        :: Text
-  , whOpened         :: Text
-  , whAuthorized     :: Bool
-  , whPendingPayment :: Bool
-  , whTxCost         :: Scientific
-  , whTxId           :: Text
-  , whCanceled       :: Bool
-  , whInvalidAddress :: Bool
-  } deriving (Show, Eq, Generic)
+    { withdrawalHistoryPaymentUUID    :: !Text
+    , withdrawalHistoryCurrency       :: !Text
+    , withdrawalHistoryAmount         :: !Amount
+    , withdrawalHistoryAddress        :: !Text
+    , withdrawalHistoryOpened         :: !Text
+    , withdrawalHistoryAuthorized     :: !Bool
+    , withdrawalHistoryPendingPayment :: !Bool
+    , withdrawalHistoryTxCost         :: !Scientific
+    , withdrawalHistoryTxId           :: !Text
+    , withdrawalHistoryCanceled       :: !Bool
+    , withdrawalHistoryInvalidAddress :: !Bool
+    }
+  deriving (Eq, Show, Generic)
 
 instance FromJSON WithdrawalHistory where
-  parseJSON = genericParseJSON defaultOptions {
-    fieldLabelModifier = drop 2
-  }
+  parseJSON = withObject "WithdrawalHistory" $ \o -> do
+    withdrawalHistoryPaymentUUID    <- o .: "PaymentUuid"
+    withdrawalHistoryCurrency       <- o .: "Currency"
+    withdrawalHistoryAmount         <- o .: "Amount"
+    withdrawalHistoryAddress        <- o .: "Address"
+    withdrawalHistoryOpened         <- o .: "Opened"
+    withdrawalHistoryAuthorized     <- o .: "Authorized"
+    withdrawalHistoryPendingPayment <- o .: "PendingPayment"
+    withdrawalHistoryTxCost         <- o .: "TxCost"
+    withdrawalHistoryTxId           <- o .: "TxId"
+    withdrawalHistoryCanceled       <- o .: "Canceled"
+    withdrawalHistoryInvalidAddress <- o .: "InvalidAddress"
+    pure (WithdrawalHistory {..})
+
+--------------------------------------------------------------------------------
 
 data DepositHistory
   = DepositHistory
-  { dhCurrency      :: Text
-  , dhAmount        :: Scientific
-  , dhLastUpdated   :: Text
-  , dhConfirmations :: Scientific
-  , dhId            :: Scientific
-  , dhTxId          :: Text
-  , dhCryptoAddress :: Text
-  } deriving (Show, Eq, Generic)
+    { depositHistoryCurrency      :: !Text
+    , depositHistoryAmount        :: !Scientific
+    , depositHistoryLastUpdated   :: !Text
+    , depositHistoryConfirmations :: !Scientific
+    , depositHistoryId            :: !Scientific
+    , depositHistoryTxId          :: !Text
+    , depositHistoryCryptoAddress :: !Text
+    }
+  deriving (Eq, Show, Generic)
 
 instance FromJSON DepositHistory where
-  parseJSON = genericParseJSON defaultOptions {
-    fieldLabelModifier = drop 2
-  }
+  parseJSON = withObject "DepositHistory" $ \o -> do
+    depositHistoryCurrency      <- o .: "Currency"
+    depositHistoryAmount        <- o .: "Amount"
+    depositHistoryLastUpdated   <- o .: "LastUpdated"
+    depositHistoryConfirmations <- o .: "Confirmations"
+    depositHistoryId            <- o .: "Id"
+    depositHistoryTxId          <- o .: "TxId"
+    depositHistoryCryptoAddress <- o .: "CryptoAddress"
+    pure (DepositHistory {..})
+
+--------------------------------------------------------------------------------
 
 type CurrencyName = Text
 
+--------------------------------------------------------------------------------
+
 data DepositAddress
   = DepositAddress
-  { daCurrency :: Text
-  , daAddress  :: Text
-  } deriving (Show, Eq, Generic)
+    { depositAddressCurrency :: !Text
+    , depositAddressAddress  :: !Text
+    }
+  deriving (Eq, Show, Generic)
 
 instance FromJSON DepositAddress where
-  parseJSON = genericParseJSON defaultOptions {
-    fieldLabelModifier = drop 2
-  }
+  parseJSON = withObject "DepositAddress" $ \o -> do
+    depositAddressCurrency <- o .: "Currency"
+    depositAddressAddress  <- o .: "Address"
+    pure (DepositAddress {..})
 
-newtype UUID = UUID Text
-  deriving (Show, Eq)
+--------------------------------------------------------------------------------
+
+newtype UUID
+  = UUID Text
+  deriving (Eq, Show)
 
 instance FromJSON UUID where
-  parseJSON = withObject "UUID" $ \o ->
+  parseJSON = withObject "UUID" $ \o -> do
     UUID <$> o .: "uuid"
+
+--------------------------------------------------------------------------------
 
 data Balance
   = Balance
-  { bCurrency      :: Text
-  , bBalance       :: Balance'
-  , bAvailable     :: Available
-  , bPending       :: Pending
-  , bCryptoAddress :: Text
-  , bUuid          :: Maybe Text
-  } deriving (Show, Eq, Generic)
+    { balanceCurrency      :: !Text
+    , balanceBalance       :: !Balance'
+    , balanceAvailable     :: !Available
+    , balancePending       :: !Pending
+    , balanceCryptoAddress :: !(Maybe Text)
+    , balanceUUID          :: !(Maybe Text)
+    }
+  deriving (Eq, Show, Generic)
 
 instance FromJSON Balance where
-  parseJSON = genericParseJSON defaultOptions {
-    fieldLabelModifier = drop 1
-  }
+  parseJSON = withObject "Balance" $ \o -> do
+    balanceCurrency      <- o .:  "Currency"
+    balanceBalance       <- o .:  "Balance"
+    balanceAvailable     <- o .:  "Available"
+    balancePending       <- o .:  "Pending"
+    balanceCryptoAddress <- o .:? "CryptoAddress"
+    balanceUUID          <- o .:? "Uuid"
+    pure (Balance {..})
+
+--------------------------------------------------------------------------------
 
 data OrderType
   = SELL
   | BUY
   | LIMIT_SELL
   | LIMIT_BUY
-  deriving (Show, Generic, Eq)
+  deriving (Eq, Show, Generic)
 
-instance FromJSON OrderType
+instance FromJSON OrderType where
+  parseJSON (String "SELL")       = pure SELL
+  parseJSON (String "BUY")        = pure BUY
+  parseJSON (String "LIMIT_SELL") = pure LIMIT_SELL
+  parseJSON (String "LIMIT_BUY")  = pure LIMIT_BUY
+
+--------------------------------------------------------------------------------
 
 data OpenOrder
   = OpenOrder
-  { ooUuid              :: Maybe Text
-  , ooOrderUuid         :: Text
-  , ooExchange          :: Text
-  , ooOrderType         :: OrderType
-  , ooQuantity          :: Quantity
-  , ooQuantityRemaining :: QuantityRemaining
-  , ooLimit             :: Limit
-  , ooCommissionPaid    :: CommissionPaid
-  , ooPrice             :: Price
-  , ooPricePerUnit      :: Maybe Price
-  , ooOpened            :: Time
-  , ooClosed            :: Maybe Time
-  , ooCancelInitiated   :: Bool
-  , ooImmediateOrCancel :: Bool
-  , ooIsConditional     :: Bool
-  , ooCondition         :: Maybe Text
-  , ooConditionTarget   :: Maybe Text
-  } deriving (Show, Eq, Generic)
+    { openOrderUUID              :: !(Maybe Text)
+    , openOrderOrderUUID         :: !Text
+    , openOrderExchange          :: !Text
+    , openOrderOrderType         :: !OrderType
+    , openOrderQuantity          :: !Quantity
+    , openOrderQuantityRemaining :: !QuantityRemaining
+    , openOrderLimit             :: !Limit
+    , openOrderCommissionPaid    :: !CommissionPaid
+    , openOrderPrice             :: !Price
+    , openOrderPricePerUnit      :: !(Maybe Price)
+    , openOrderOpened            :: !Time
+    , openOrderClosed            :: !(Maybe Time)
+    , openOrderCancelInitiated   :: !Bool
+    , openOrderImmediateOrCancel :: !Bool
+    , openOrderIsConditional     :: !Bool
+    , openOrderCondition         :: !(Maybe Text)
+    , openOrderConditionTarget   :: !(Maybe Text)
+    }
+  deriving (Eq, Show, Generic)
 
 instance FromJSON OpenOrder where
-  parseJSON = genericParseJSON defaultOptions {
-    fieldLabelModifier = drop 2
-  }
+  parseJSON = withObject "OpenOrder" $ \o -> do
+    openOrderUUID              <- o .:? "Uuid"
+    openOrderOrderUUID         <- o .:  "OrderUuid"
+    openOrderExchange          <- o .:  "Exchange"
+    openOrderOrderType         <- o .:  "OrderType"
+    openOrderQuantity          <- o .:  "Quantity"
+    openOrderQuantityRemaining <- o .:  "QuantityRemaining"
+    openOrderLimit             <- o .:  "Limit"
+    openOrderCommissionPaid    <- o .:  "CommissionPaid"
+    openOrderPrice             <- o .:  "Price"
+    openOrderPricePerUnit      <- o .:? "PricePerUnit"
+    openOrderOpened            <- o .:  "Opened"
+    openOrderClosed            <- o .:? "Closed"
+    openOrderCancelInitiated   <- o .:  "CancelInitiated"
+    openOrderImmediateOrCancel <- o .:  "ImmediateOrCancel"
+    openOrderIsConditional     <- o .:  "IsConditional"
+    openOrderCondition         <- o .:? "Condition"
+    openOrderConditionTarget   <- o .:? "ConditionTarget"
+    pure (OpenOrder {..})
+
+--------------------------------------------------------------------------------
 
 data OrderHistory
   = OrderHistory
-    { ohOrderUuid         :: Text
-    , ohExchange          :: Text
-    , ohTimeStamp         :: Time
-    , ohOrderType         :: OrderType
-    , ohLimit             :: Limit
-    , ohQuantity          :: Quantity
-    , ohQuantityRemaining :: QuantityRemaining
-    , ohCommission        :: Commission
-    , ohPrice             :: Price
-    , ohPricePerUnit      :: Maybe Price
-    , ohIsConditional     :: Bool
-    , ohCondition         :: Text
-    , ohConditionTarget   :: Maybe Text
-    , ohImmediateOrCancel :: Bool
-    } deriving (Show, Eq, Generic)
+    { orderHistoryOrderUUID         :: !Text
+    , orderHistoryExchange          :: !Text
+    , orderHistoryTimeStamp         :: !Time
+    , orderHistoryOrderType         :: !OrderType
+    , orderHistoryLimit             :: !Limit
+    , orderHistoryQuantity          :: !Quantity
+    , orderHistoryQuantityRemaining :: !QuantityRemaining
+    , orderHistoryCommission        :: !Commission
+    , orderHistoryPrice             :: !Price
+    , orderHistoryPricePerUnit      :: !(Maybe Price)
+    , orderHistoryIsConditional     :: !Bool
+    , orderHistoryCondition         :: !Text
+    , orderHistoryConditionTarget   :: !(Maybe Text)
+    , orderHistoryImmediateOrCancel :: !Bool
+    }
+  deriving (Eq, Show, Generic)
 
 instance FromJSON OrderHistory where
-  parseJSON = genericParseJSON defaultOptions {
-    fieldLabelModifier = drop 2
-  }
+  parseJSON = withObject "OrderHistory" $ \o -> do
+    orderHistoryOrderUUID         <- o .:  "OrderUuid"
+    orderHistoryExchange          <- o .:  "Exchange"
+    orderHistoryTimeStamp         <- o .:  "TimeStamp"
+    orderHistoryOrderType         <- o .:  "OrderType"
+    orderHistoryLimit             <- o .:  "Limit"
+    orderHistoryQuantity          <- o .:  "Quantity"
+    orderHistoryQuantityRemaining <- o .:  "QuantityRemaining"
+    orderHistoryCommission        <- o .:  "Commission"
+    orderHistoryPrice             <- o .:  "Price"
+    orderHistoryPricePerUnit      <- o .:? "PricePerUnit"
+    orderHistoryIsConditional     <- o .:  "IsConditional"
+    orderHistoryCondition         <- o .:  "Condition"
+    orderHistoryConditionTarget   <- o .:? "ConditionTarget"
+    orderHistoryImmediateOrCancel <- o .:  "ImmediateOrCancel"
+    pure (OrderHistory {..})
+
+--------------------------------------------------------------------------------
 
 data Order
   = Order
-    { oAccountId                  :: Maybe Text
-    , oOrderUuid                  :: Text
-    , oExchange                   :: Text
-    , oOrderType                  :: OrderType
-    , oQuantity                   :: Quantity
-    , oQuantityRemaining          :: QuantityRemaining
-    , oLimit                      :: Limit
-    , oReserved                   :: Reserved
-    , oReservedRemaining          :: ReserveRemaining
-    , oCommissionReserved         :: CommissionReserved
-    , oCommissionReserveRemaining :: CommissionReserveRemaining
-    , oCommissionPaid             :: CommissionPaid
-    , oPrice                      :: Price
-    , oPricePerUnit               :: Maybe Price
-    , oOpened                     :: Time
-    , oClosed                     :: Maybe Time
-    , oIsOpen                     :: Bool
-    , oSentinel                   :: Text
-    , oCommission                 :: Commission
-    , oIsConditional              :: Bool
-    , oCancelInitiated            :: Bool
-    , oImmediateOrCancel          :: Bool
-    , oCondition                  :: Text
-    , oConditionTarget            :: Maybe Text
-    } deriving (Show, Eq, Generic)
+    { orderAccountID                  :: !(Maybe Text)
+    , orderOrderUUID                  :: !Text
+    , orderExchange                   :: !Text
+    , orderOrderType                  :: !OrderType
+    , orderQuantity                   :: !Quantity
+    , orderQuantityRemaining          :: !QuantityRemaining
+    , orderLimit                      :: !Limit
+    , orderReserved                   :: !Reserved
+    , orderReservedRemaining          :: !ReserveRemaining
+    , orderCommissionReserved         :: !CommissionReserved
+    , orderCommissionReserveRemaining :: !CommissionReserveRemaining
+    , orderCommissionPaid             :: !CommissionPaid
+    , orderPrice                      :: !Price
+    , orderPricePerUnit               :: !(Maybe Price)
+    , orderOpened                     :: !Time
+    , orderClosed                     :: !(Maybe Time)
+    , orderIsOpen                     :: !Bool
+    , orderSentinel                   :: !Text
+    , orderCommission                 :: !Commission
+    , orderIsConditional              :: !Bool
+    , orderCancelInitiated            :: !Bool
+    , orderImmediateOrCancel          :: !Bool
+    , orderCondition                  :: !Text
+    , orderConditionTarget            :: !(Maybe Text)
+    }
+  deriving (Eq, Show, Generic)
 
 instance FromJSON Order where
-  parseJSON = genericParseJSON defaultOptions {
-    fieldLabelModifier = drop 1
-  }
+  parseJSON = withObject "Order" $ \o -> do
+    orderAccountID                  <- o .:? "AccountId"
+    orderOrderUUID                  <- o .:  "OrderUuid"
+    orderExchange                   <- o .:  "Exchange"
+    orderOrderType                  <- o .:  "OrderType"
+    orderQuantity                   <- o .:  "Quantity"
+    orderQuantityRemaining          <- o .:  "QuantityRemaining"
+    orderLimit                      <- o .:  "Limit"
+    orderReserved                   <- o .:  "Reserved"
+    orderReservedRemaining          <- o .:  "ReservedRemaining"
+    orderCommissionReserved         <- o .:  "CommissionReserved"
+    orderCommissionReserveRemaining <- o .:  "CommissionReserveRemaining"
+    orderCommissionPaid             <- o .:  "CommissionPaid"
+    orderPrice                      <- o .:  "Price"
+    orderPricePerUnit               <- o .:? "PricePerUnit"
+    orderOpened                     <- o .:  "Opened"
+    orderClosed                     <- o .:? "Closed"
+    orderIsOpen                     <- o .:  "IsOpen"
+    orderSentinel                   <- o .:  "Sentinel"
+    orderCommission                 <- o .:  "Commission"
+    orderIsConditional              <- o .:  "IsConditional"
+    orderCancelInitiated            <- o .:  "CancelInitiated"
+    orderImmediateOrCancel          <- o .:  "ImmediateOrCancel"
+    orderCondition                  <- o .:  "Condition"
+    orderConditionTarget            <- o .:? "ConditionTarget"
+    pure (Order {..})
+
+--------------------------------------------------------------------------------
 
 data MarketSummary
   = MarketSummary
-  { msMarketName        :: MarketName
-  , msHigh              :: High
-  , msLow               :: Low
-  , msVolume            :: Volume
-  , msLast              :: Last
-  , msBaseVolume        :: BaseVolume
-  , msTimeStamp         :: Time
-  , msBid               :: Bid
-  , msAsk               :: Ask
-  , msOpenBuyOrders     :: Int
-  , msOpenSellOrders    :: Int
-  , msPrevDay           :: PrevDay
-  , msCreated           :: Time
-  , msDisplayMarketName :: Maybe Text
-  } deriving (Show, Eq, Generic)
+    { marketSummaryMarketName        :: !MarketName
+    , marketSummaryHigh              :: !High
+    , marketSummaryLow               :: !Low
+    , marketSummaryVolume            :: !Volume
+    , marketSummaryLast              :: !Last
+    , marketSummaryBaseVolume        :: !BaseVolume
+    , marketSummaryTimeStamp         :: !Time
+    , marketSummaryBid               :: !Bid
+    , marketSummaryAsk               :: !Ask
+    , marketSummaryOpenBuyOrders     :: !Int
+    , marketSummaryOpenSellOrders    :: !Int
+    , marketSummaryPrevDay           :: !PrevDay
+    , marketSummaryCreated           :: !Time
+    , marketSummaryDisplayMarketName :: !(Maybe Text)
+    }
+  deriving (Eq, Show, Generic)
 
 instance FromJSON MarketSummary where
-  parseJSON = genericParseJSON defaultOptions {
-    fieldLabelModifier = drop 2
-  }
+  parseJSON = withObject "MarketSummary" $ \o -> do
+    marketSummaryMarketName        <- o .:  "MarketName"
+    marketSummaryHigh              <- o .:  "High"
+    marketSummaryLow               <- o .:  "Low"
+    marketSummaryVolume            <- o .:  "Volume"
+    marketSummaryLast              <- o .:  "Last"
+    marketSummaryBaseVolume        <- o .:  "BaseVolume"
+    marketSummaryTimeStamp         <- o .:  "TimeStamp"
+    marketSummaryBid               <- o .:  "Bid"
+    marketSummaryAsk               <- o .:  "Ask"
+    marketSummaryOpenBuyOrders     <- o .:  "OpenBuyOrders"
+    marketSummaryOpenSellOrders    <- o .:  "OpenSellOrders"
+    marketSummaryPrevDay           <- o .:  "PrevDay"
+    marketSummaryCreated           <- o .:  "Created"
+    marketSummaryDisplayMarketName <- o .:? "DisplayMarketName"
+    pure (MarketSummary {..})
+
+--------------------------------------------------------------------------------
