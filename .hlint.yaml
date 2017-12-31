@@ -1,0 +1,172 @@
+- extensions:
+    - default: true
+
+    # These are basically non-negotiable
+    - {name: AllowAmbiguousTypes,      within: []} # should never be necessary
+    - {name: Arrows,                   within: []} # weird syntax
+    - {name: DatatypeContexts,         within: []} # useless
+    - {name: EmptyCase,                within: []} # nearly useless
+    - {name: ImpredicativeTypes,       within: []} # very buggy
+    - {name: IncoherentInstances,      within: []} # footgun
+    - {name: NondecreasingIndentation, within: []} # can be very confusing
+
+    # These can be appealed
+    - {name: ApplicativeDo,            within: []} # buggy
+    - {name: FunctionalDependencies,   within: []} # use TypeFamilies instead
+    - {name: ImplicitParams,           within: []} # dynamically scoped
+    - {name: PatternGuards,            within: []} # ViewPatterns usually better
+    - {name: TemplateHaskell,          within: []} # avoid whenever reasonable
+    - {name: TemplateHaskellQuotes,    within: []} # ditto
+
+    # Exceptions to the above
+    - {name: FunctionalDependencies,   within: [Actor, VectorClock]}
+
+- modules:
+    # `containers`
+    - {name: [Data.Set],                              as: [Set]}
+    - {name: [Data.Map.Strict],                       as: [Map]}
+    - {name: [Data.Map.Lazy],                         as: [LMap]}
+                                                    
+    # `unordered-containers`                        
+    - {name: [Data.HashSet],                          as: [HS]}
+    - {name: [Data.HashMap.Strict],                   as: [HM]}
+    - {name: [Data.HashMap.Lazy],                     as: [LHM]}
+                                                    
+    # `text`                                        
+    - {name: [Data.Text],                             as: [Text]}
+    - {name: [Data.Text.Lazy],                        as: [LText]}
+                                                    
+    # `bytestring`                                  
+    - {name: [Data.ByteString],                       as: [BS]}
+    - {name: [Data.ByteString.Char8],                 as: [BSC8]}
+    - {name: [Data.ByteString.Lazy],                  as: [LBS]}
+    - {name: [Data.ByteString.Lazy.Char8],            as: [LBSC8]}
+                                                    
+    # `aeson`                                       
+    - {name: [Data.Aeson],                            as: [Aeson]}
+    - {name: [Data.Aeson.Types],                      as: [Aeson]}
+                                                    
+    # `lens`                                        
+    - {name: [Control.Lens],                          as: [Lens]}
+                                                    
+    # `smallcheck`                                  
+    - {name: [Test.SmallCheck],                       as: [SC]}
+    - {name: [Test.SmallCheck.Drivers],               as: [SC]}
+    - {name: [Test.SmallCheck.Series],                as: [SC]}
+                                                    
+    # `QuickCheck`, `quickcheck-instances`          
+    - {name: [Test.QuickCheck],                       as: [QC]}
+    - {name: [Test.QuickCheck.Arbitrary],             as: [QC]}
+    - {name: [Test.QuickCheck.Function],              as: [QC]}
+    - {name: [Test.QuickCheck.Gen],                   as: [QC]}
+    - {name: [Test.QuickCheck.Modifiers],             as: [QC]}
+    - {name: [Test.QuickCheck.Monadic],               as: [QC]}
+    - {name: [Test.QuickCheck.Poly],                  as: [QC]}
+    - {name: [Test.QuickCheck.Property],              as: [QC]}
+    - {name: [Test.QuickCheck.Test],                  as: [QC]}
+    - {name: [Test.QuickCheck.Instances],             as: [QC]}
+                                                    
+    # `mtl`, `transformers`                         
+    - {name: [Control.Monad.Trans.Accum],             as: [Accum, AccumT]}
+    - {name: [Control.Monad.Trans.Class],             as: [MonadTrans]}
+    - {name: [Control.Monad.Cont],                    within: []} # not specific
+    - {name: [Control.Monad.Cont.Class],              as: [MonadCont]}
+    - {name: [Control.Monad.Trans.Cont],              as: [Cont, ContT]}
+    - {name: [Control.Monad.Error],                   within: []} # not specific
+    - {name: [Control.Monad.Error.Class],             as: [MonadError]}
+    - {name: [Control.Monad.Trans.Error],             as: [Error, ErrorT]}
+    - {name: [Control.Monad.Except],                  within: []} # not specific
+    - {name: [Control.Monad.Trans.Except],            as: [Except, ExceptT]}
+    - {name: [Control.Monad.Identity],                within: []} # not specific
+    - {name: [Data.Functor.Identity],                 as: [Identity]}
+    - {name: [Control.Monad.Trans.Identity],          as: [IdentityT]}
+    - {name: [Control.Monad.IO.Class],                as: [MonadIO]}
+    - {name: [Control.Monad.List],                    within: []} # deprecated
+    - {name: [Control.Monad.Trans.List],              within: []} # deprecated
+    - {name: [Control.Monad.Trans.Maybe],             as: [MaybeT]}
+    - {name: [Control.Monad.Reader],                  as: [Reader]}
+    - {name: [Control.Monad.Reader.Class],            as: [MonadReader]}
+    - {name: [Control.Monad.Trans.Reader],            as: [ReaderT]}
+    - {name: [Control.Monad.RWS],                     within: []} # not specific
+    - {name: [Control.Monad.RWS.Strict],              within: []} # not specific
+    - {name: [Control.Monad.RWS.Lazy],                within: []} # not specific
+    - {name: [Control.Monad.Trans.RWS],               within: []} # not specific
+    - {name: [Control.Monad.Trans.RWS.Strict],        as: [RWS, RWST]}
+    - {name: [Control.Monad.Trans.RWS.Lazy],          as: [LRWS, LRWST]}
+    - {name: [Control.Monad.RWS.Class],               as: [MonadRWS]}
+    - {name: [Control.Monad.Trans.Select],            as: [Select, SelectT]}
+    - {name: [Control.Monad.State],                   within: []} # not specific
+    - {name: [Control.Monad.State.Strict],            within: []} # not specific
+    - {name: [Control.Monad.State.Lazy],              within: []} # not specific
+    - {name: [Control.Monad.Trans.State],             within: []} # not specific
+    - {name: [Control.Monad.Trans.State.Strict],      as: [State, StateT]}
+    - {name: [Control.Monad.Trans.State.Lazy],        as: [LState, LStateT]}
+    - {name: [Control.Monad.State.Class],             as: [MonadState]}
+    - {name: [Control.Monad.Writer],                  within: []} # not specific
+    - {name: [Control.Monad.Writer.Strict],           within: []} # not specific
+    - {name: [Control.Monad.Writer.Lazy],             within: []} # use Accum
+    - {name: [Control.Monad.Trans.Writer],            within: []} # not specific
+    - {name: [Control.Monad.Trans.Writer.Strict],     as: [Writer, WriterT]}
+    - {name: [Control.Monad.Trans.Writer.Lazy],       within: []} # use Accum
+    - {name: [Control.Monad.Writer.Class],            as: [MonadWriter]}
+    - {name: [Control.Monad.Catch],                   as: [MonadThrow]}
+    - {name: [Control.Monad.Catch],                   as: [MonadCatch]}
+    - {name: [Control.Monad.Catch],                   as: [MonadMask]}
+    - {name: [Control.Monad.Catch.Pure],              as: [Catch, CatchT]}
+                                                    
+    # `ether`                                       
+    - {name: [Ether],                                 within: []} # not specific
+    - {name: [Ether.Internal],                        within: []} # internal
+    - {name: [Ether.Except],                          as: [Ether, EExcept]}
+    - {name: [Ether.Reader],                          as: [Ether, EReader]}
+    - {name: [Ether.State],                           as: [Ether, EState]}
+    - {name: [Ether.Writer],                          as: [Ether, EWriter]}
+    - {name: [Ether.TagDispatch],                     as: [Ether, ETagDispatch]}
+    - {name: [Ether.TaggedTrans],                     as: [Ether, ETaggedTrans]}
+
+    # `concurrency`
+    - {name: [Control.Concurrent.Classy],             within: []} # not specific
+    - {name: [Control.Monad.Conc.Class],              as: [MonadConc]}
+    - {name: [Control.Concurrent.Classy.Async],       as: [Async]}
+    - {name: [Control.Concurrent.Classy.CRef],        as: [CRef]}
+    - {name: [Control.Concurrent.Classy.Chan],        as: [Chan]}
+    - {name: [Control.Concurrent.Classy.MVar],        as: [MVar]}
+    - {name: [Control.Concurrent.Classy.QSem],        as: [QSem]}
+    - {name: [Control.Concurrent.Classy.QSemN],       as: [QSemN]}
+    - {name: [Control.Monad.STM.Class],               as: [MonadSTM]}
+    - {name: [Control.Concurrent.Classy.STM.TArray],  as: [TArray]}
+    - {name: [Control.Concurrent.Classy.STM.TBQueue], as: [TBQueue]}
+    - {name: [Control.Concurrent.Classy.STM.TChan],   as: [TChan]}
+    - {name: [Control.Concurrent.Classy.STM.TMVar],   as: [TMVar]}
+    - {name: [Control.Concurrent.Classy.STM.TQueue],  as: [TQueue]}
+    - {name: [Control.Concurrent.Classy.STM.TVar],    as: [TVar]}
+    
+    # `dejafu`
+    - {name: [Test.DejaFu],                           as: [DejaFu]}
+    - {name: [Test.DejaFu.Common],                    as: [DejaFu.Common]}
+    - {name: [Test.DejaFu.Conc],                      as: [DejaFu.Conc]}
+    - {name: [Test.DejaFu.Conc.Internal],             within: []} # internal 
+    - {name: [Test.DejaFu.Conc.Internal.Common],      within: []} # internal 
+    - {name: [Test.DejaFu.Conc.Internal.Memory],      within: []} # internal 
+    - {name: [Test.DejaFu.Conc.Internal.Threading],   within: []} # internal 
+    - {name: [Test.DejaFu.Defaults],                  as: [DejaFu.Defaults]}
+    - {name: [Test.DejaFu.Refinement],                as: [DejaFu.Refinement]}
+    - {name: [Test.DejaFu.SCT],                       as: [DejaFu.SCT]}
+    - {name: [Test.DejaFu.SCT.Internal],              within: []} # internal
+    - {name: [Test.DejaFu.STM],                       as: [DejaFu.STM]}
+    - {name: [Test.DejaFu.STM.Internal],              within: []} # internal
+    - {name: [Test.DejaFu.Schedule],                  as: [DejaFu.Schedule]}
+
+
+- functions:
+    - {name: unsafePerformIO, within: [Tests.ReferenceLexer.Str0]}
+
+- warn: {name: Use explicit module export list}
+
+- ignore: {name: Redundant bracket}
+- ignore: {name: Redundant do}
+- ignore: {name: Redundant lambda}
+- ignore: {name: Avoid lambda}
+- ignore: {name: Use ||}
+- ignore: {name: Use uncurry}
+- ignore: {name: Use fewer imports}
