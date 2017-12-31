@@ -2,53 +2,72 @@ module Main where
 
 import           Bittrex
 import           Control.Monad
-import           Data.Text     (Text)
-import qualified Data.Text.IO  as T
+import           Data.Function      ((&))
+import           Data.Maybe
+import           Data.Text          (Text)
+import qualified Data.Text.IO       as T
+import           System.Environment (getEnv, lookupEnv)
 
 main :: IO ()
 main = do
-  [api,secret] <- lines <$> readFile "/Users/david/.bittrex"
+  -- Get Bittrex API credentials
+
+  homeDirectory <- getEnv "HOME"
+  credentialFile <- fromMaybe (homeDirectory ++ "/.bittrex")
+                    <$> lookupEnv "BITTREX_CREDENTIAL_FILE"
+  [api, secret] <- lines <$> readFile credentialFile
   let keys = APIKeys api secret
 
-  -- Public Usage
-  putStrLn "Markets"
+  -- Define helper functions
+
+  let putHeader x = putStrLn ("\ESC[1m" ++ x ++ "\ESC[0m")
+  let printInd x = let indent = "    "
+                       wrap line = indent ++ "\ESC[34m" ++ line ++ "\ESC[0m"
+                       shown = unlines $ map wrap $ lines $ show x
+                   in putStrLn shown
+
+  -- Public API example
+
+  putHeader "Markets"
   Right ms <- getMarkets
-  forM_ ms (print . marketName)
+  forM_ ms (printInd . marketName)
 
-  putStrLn "Currencies"
+  putHeader "Currencies"
   Right cs <- getCurrencies
-  mapM_ print cs
+  mapM_ printInd cs
 
-  putStrLn "Ticker for BTC-DOGE market"
+  putHeader "Ticker for BTC-DOGE market"
   t <- getTicker (MarketName BTC_DOGE)
-  print t
+  printInd t
 
-  putStrLn "Summary of BTC-DOGE market"
+  putHeader "Summary of BTC-DOGE market"
   Right t <- getMarketSummary (MarketName BTC_DOGE)
-  print t
+  printInd t
 
-  putStrLn "Get market summaries"
+  putHeader "Get market summaries"
   Right t <- getMarketSummaries
-  print t
+  printInd t
 
-  putStrLn "Order book sells for for BTC-DOGE market"
+  putHeader "Order book sells for for BTC-DOGE market"
   book <- getOrderBookSells (MarketName BTC_DOGE)
-  print book
+  printInd book
 
-  putStrLn "Order book buys for for BTC-DOGE market"
+  putHeader "Order book buys for for BTC-DOGE market"
   book <- getOrderBookBuys (MarketName BTC_DOGE)
-  print book
+  printInd book
 
-  putStrLn "Market history for BTC-DOGE"
+  putHeader "Market history for BTC-DOGE"
   Right history <- getMarketHistory (MarketName BTC_DOGE)
-  forM_ history print
+  forM_ history printInd
 
-  -- Market usage
-  putStrLn "Retrieve your open orders"
+  -- Market API example
+
+  putHeader "Retrieve your open orders"
   Right openOrders <- getOpenOrders keys (MarketName BTC_DOGE)
-  forM_ openOrders print
+  forM_ openOrders printInd
 
-  -- Account usage,
-  putStrLn "Check your balances (for all currencies)"
+  -- Account API example
+
+  putHeader "Check your balances (for all currencies)"
   Right balances <- getBalances keys
-  forM_ balances print
+  forM_ balances printInd
