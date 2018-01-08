@@ -1,5 +1,5 @@
 name:                  bittrex
-version:               0.5.0.0
+version:               0.6.0.0
 synopsis:              Bindings for the Bittrex API
 description:           Haskell bindings to the Bittrex exchange
 homepage:              https://github.com/dmjio/bittrex
