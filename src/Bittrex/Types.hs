@@ -413,7 +413,7 @@ data MarketName'
 
 newtype Bid
   = Bid (Fixed E8)
-  deriving (Eq, Num, Show)
+  deriving (Eq, Num, Show, Ord, Generic)
 
 deriving instance FromJSON Bid
 
@@ -421,7 +421,7 @@ deriving instance FromJSON Bid
 
 newtype Ask
   = Ask (Fixed E8)
-  deriving (Eq, Num, Show)
+  deriving (Eq, Num, Show, Ord, Generic)
 
 deriving instance FromJSON Ask
 
@@ -429,7 +429,7 @@ deriving instance FromJSON Ask
 
 newtype Last
   = Last (Fixed E8)
-  deriving (Eq, Num, Show)
+  deriving (Eq, Num, Show, Ord, Generic)
 
 deriving instance FromJSON Last
 
@@ -437,7 +437,7 @@ deriving instance FromJSON Last
 
 newtype High
   = High (Fixed E8)
-  deriving (Eq, Num, Show)
+  deriving (Eq, Num, Show, Ord, Generic)
 
 deriving instance FromJSON High
 
@@ -445,7 +445,7 @@ deriving instance FromJSON High
 
 newtype Low
   = Low (Fixed E8)
-  deriving (Eq, Num, Show)
+  deriving (Eq, Num, Show, Ord, Generic)
 
 deriving instance FromJSON Low
 
@@ -453,7 +453,7 @@ deriving instance FromJSON Low
 
 newtype Volume
   = Volume (Fixed E8)
-  deriving (Eq, Num, Show)
+  deriving (Eq, Num, Show, Ord, Generic)
 
 deriving instance FromJSON Volume
 
@@ -461,7 +461,7 @@ deriving instance FromJSON Volume
 
 newtype BaseVolume
   = BaseVolume (Fixed E8)
-  deriving (Eq, Num, Show)
+  deriving (Eq, Num, Show, Ord, Generic)
 
 deriving instance FromJSON BaseVolume
 
@@ -469,7 +469,7 @@ deriving instance FromJSON BaseVolume
 
 newtype PrevDay
   = PrevDay (Fixed E8)
-  deriving (Eq, Num, Show)
+  deriving (Eq, Num, Show, Ord, Generic)
 
 deriving instance FromJSON PrevDay
 
@@ -477,7 +477,7 @@ deriving instance FromJSON PrevDay
 
 newtype Quantity
   = Quantity (Fixed E8)
-  deriving (Eq, Num, Show)
+  deriving (Eq, Num, Show, Ord, Generic)
 
 deriving instance FromJSON Quantity
 
@@ -485,7 +485,7 @@ deriving instance FromJSON Quantity
 
 newtype Rate
   = Rate (Fixed E8)
-  deriving (Eq, Num, Show)
+  deriving (Eq, Num, Show, Ord, Generic)
 
 deriving instance FromJSON Rate
 
@@ -493,7 +493,7 @@ deriving instance FromJSON Rate
 
 newtype Price
   = Price (Fixed E8)
-  deriving (Eq, Num, Show)
+  deriving (Eq, Num, Show, Ord, Generic)
 
 deriving instance FromJSON Price
 
@@ -501,7 +501,7 @@ deriving instance FromJSON Price
 
 newtype Total
   = Total (Fixed E8)
-  deriving (Eq, Num, Show)
+  deriving (Eq, Num, Show, Ord, Generic)
 
 deriving instance FromJSON Total
 
@@ -509,7 +509,7 @@ deriving instance FromJSON Total
 
 newtype QuantityRemaining
   = QuantityRemaining (Fixed E8)
-  deriving (Eq, Num, Show)
+  deriving (Eq, Num, Show, Ord, Generic)
 
 deriving instance FromJSON QuantityRemaining
 
@@ -517,7 +517,7 @@ deriving instance FromJSON QuantityRemaining
 
 newtype Limit
   = Limit (Fixed E8)
-  deriving (Eq, Num, Show)
+  deriving (Eq, Num, Show, Ord, Generic)
 
 deriving instance FromJSON Limit
 
@@ -525,7 +525,7 @@ deriving instance FromJSON Limit
 
 newtype CommissionPaid
   = CommissionPaid (Fixed E8)
-  deriving (Eq, Num, Show)
+  deriving (Eq, Num, Show, Ord, Generic)
 
 deriving instance FromJSON CommissionPaid
 
@@ -535,7 +535,7 @@ deriving instance FromJSON CommissionPaid
 
 newtype Balance'
   = Balance' (Fixed E8)
-  deriving (Eq, Num, Show)
+  deriving (Eq, Num, Show, Ord, Generic)
 
 deriving instance FromJSON Balance'
 
@@ -543,7 +543,7 @@ deriving instance FromJSON Balance'
 
 newtype Available
   = Available (Fixed E8)
-  deriving (Eq, Num, Show)
+  deriving (Eq, Num, Show, Ord, Generic)
 
 deriving instance FromJSON Available
 
@@ -551,7 +551,7 @@ deriving instance FromJSON Available
 
 newtype Pending
   = Pending (Fixed E8)
-  deriving (Eq, Num, Show)
+  deriving (Eq, Num, Show, Ord, Generic)
 
 deriving instance FromJSON Pending
 
@@ -559,7 +559,7 @@ deriving instance FromJSON Pending
 
 newtype Reserved
   = Reserved (Fixed E8)
-  deriving (Eq, Num, Show)
+  deriving (Eq, Num, Show, Ord, Generic)
 
 deriving instance FromJSON Reserved
 
@@ -567,7 +567,7 @@ deriving instance FromJSON Reserved
 
 newtype ReserveRemaining
   = ReserveRemaining (Fixed E8)
-  deriving (Eq, Num, Show)
+  deriving (Eq, Num, Show, Ord, Generic)
 
 deriving instance FromJSON ReserveRemaining
 
@@ -575,7 +575,7 @@ deriving instance FromJSON ReserveRemaining
 
 newtype CommissionReserved
   = CommissionReserved (Fixed E8)
-  deriving (Eq, Num, Show)
+  deriving (Eq, Num, Show, Ord, Generic)
 
 deriving instance FromJSON CommissionReserved
 
@@ -583,7 +583,7 @@ deriving instance FromJSON CommissionReserved
 
 newtype CommissionReserveRemaining
   = CommissionReserveRemaining (Fixed E8)
-  deriving (Eq, Num, Show)
+  deriving (Eq, Num, Show, Ord, Generic)
 
 deriving instance FromJSON CommissionReserveRemaining
 
@@ -591,7 +591,7 @@ deriving instance FromJSON CommissionReserveRemaining
 
 newtype TxCost
   = TxCost (Fixed E8)
-  deriving (Eq, Num, Show)
+  deriving (Eq, Num, Show, Ord, Generic)
 
 deriving instance FromJSON TxCost
 
@@ -599,7 +599,7 @@ deriving instance FromJSON TxCost
 
 newtype Amount
   = Amount (Fixed E8)
-  deriving (Eq, Num, Show)
+  deriving (Eq, Num, Show, Ord, Generic)
 
 deriving instance FromJSON Amount
 
@@ -607,7 +607,7 @@ deriving instance FromJSON Amount
 
 newtype Commission
   = Commission (Fixed E8)
-  deriving (Eq, Num, Show)
+  deriving (Eq, Num, Show, Ord, Generic)
 
 deriving instance FromJSON Commission
 
@@ -632,7 +632,7 @@ instance FromJSON Ticker where
 
 newtype MinTradeSize
   = MinTradeSize (Fixed E8)
-  deriving (Eq, Num, Show)
+  deriving (Eq, Num, Show, Ord, Generic)
 
 deriving instance FromJSON MinTradeSize
 
@@ -640,7 +640,7 @@ deriving instance FromJSON MinTradeSize
 
 newtype TxFee
   = TxFee (Fixed E8)
-  deriving (Eq, Num, Show)
+  deriving (Eq, Num, Show, Ord, Generic)
 
 deriving instance FromJSON TxFee
 
