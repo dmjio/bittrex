@@ -4,15 +4,16 @@ matrix:
   fast_finish: true
   include:
     - env: GHCVER=ghcHEAD
+    - env: GHCVER=ghc861
     - env: GHCVER=ghc844
     - env: GHCVER=ghc822
     - env: GHCVER=ghc802
 
   allow_failures:
     - env: GHCVER=ghcHEAD
+    - env: GHCVER=ghc861
     - env: GHCVER=ghc822
     - env: GHCVER=ghc802
-    - env: GHCVER=ghc861
 
 before_install:
  - nix-channel --list
